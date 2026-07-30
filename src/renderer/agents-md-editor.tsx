@@ -101,7 +101,14 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
         <strong>AGENTS.md</strong>
         {badge.text && <span style={{ color: badge.color, fontSize: "0.85em" }}>{badge.text}</span>}
       </div>
-      <div style={{ border: "1px solid #ccc", height: "360px" }}>
+      <div
+        style={{
+          border: "1px solid var(--borderColor)",
+          height: "360px",
+          resize: "vertical",
+          overflow: "hidden",
+        }}
+      >
         {loaded ? (
           <Monaco
             language="markdown"
