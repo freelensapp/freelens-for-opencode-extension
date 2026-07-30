@@ -16,8 +16,16 @@ opencode agent runs hits the selected cluster with no extra context plumbing.
 - One click → new terminal dock tab, auto-focused, running
   `cd "<workdir>" && opencode`. Each click = independent session.
 - Zero bundled binary. Works on any OS where the user has installed opencode.
-- No `opencode.json` permission rules — the agent runs full opencode. To
-  restrict later, drop a config file into the per-cluster workdir.
+- Persistent, editable per-cluster agent harness under
+  `<userData>/opencode-sessions/<safe-id>/.opencode/` + `AGENTS.md`. Seeded
+  from a bundled k8s-aware scaffold on first open; survives across sessions;
+  fully user-owned after seeding. Edit any harness file via the Reveal workdir
+  button; AGENTS.md also editable in-app via Monaco.
+- Bundled scaffold ships `opencode.json` k8s permission rules (allow read-only
+  kubectl, deny destructive mutations, `webfetch=ask`) and a k8s-aware
+  `AGENTS.md`.
+- Reset path: delete `.opencode/` in the workdir (via Reveal) and reopen the
+  Agent Session page — `prepare-harness` re-seeds. No reset button.
 
 ## Install
 
@@ -97,11 +105,16 @@ raw `ipcRenderer.invoke`); it is smoke-tested manually — no component unit tes
 Two-process Electron extension mirroring `freelens-example-extension`:
 
 - **Main process** (`src/main/index.ts`) — `OpencodeMainExtension extends
-  Main.LensExtension`, registers two IPC handlers via raw `electron.ipcMain`
+  Main.LensExtension`, registers five IPC handlers via raw `electron.ipcMain`
   using a hardcoded `opencode-extension:` channel prefix (see Gotchas skill
-  for why we don't use `Main.Ipc`). Backed by pure modules under `src/main/`:
-  `check-opencode-installed.ts` (spawn `opencode --version`, parse, never
-  reject) and `get-agent-workdir.ts` (sanitize cluster id, ensure dir).
+  for why we don't use `Main.Ipc`): `check-opencode-installed`,
+  `prepare-harness`, `read-harness-file`, `write-harness-file`, `reveal-path`.
+  Backed by pure modules under `src/main/`: `check-opencode-installed.ts`
+  (spawn `opencode --version`, parse, never reject),
+  `get-agent-workdir.ts` (sanitize cluster id, ensure dir),
+  `scaffold-source.ts` / `ensure-harness.ts` (seed the bundled harness on
+  first open), `harness-file.ts` (the `safeResolve` security choke point),
+  and `reveal-path.ts` (open the workdir in the OS file manager).
 - **Renderer** (`src/renderer/`) — `OpencodeRendererExtension extends
   Renderer.LensExtension` registering one cluster page + menu
   (`agent-session`). The page is a MobX `observer` status card that calls
@@ -111,9 +124,34 @@ Two-process Electron extension mirroring `freelens-example-extension`:
   — the extension never reads or mutates it.
 
 Runtime globals (`@freelensapp/extensions`, `mobx`, `react`, ...) injected by
-the Freelens host. Build-time: types only. No runtime deps in `package.json`.
+the Freelens host. Monaco is the exception — `monaco-editor` and
+`@monaco-editor/react` are the extension's first runtime dependencies
+(bundled into `out/renderer/` at build, shipped in the `.tgz`).
 
 See `.opencode/skills/freelens-opencode-extension-architecture/SKILL.md`.
+
+## Harness
+
+Each cluster session has a persistent `.opencode/` tree under
+`<userData>/opencode-sessions/<safe-cluster-id>/`:
+
+```
+<userData>/opencode-sessions/<safe-cluster-id>/
+  .opencode/
+    opencode.json
+  AGENTS.md
+```
+
+On first open, the extension copies a bundled k8s-aware scaffold
+(`src/main/scaffold/`) into the workdir. After that, the harness is fully
+user-owned — edit any file in your own editor via the Reveal workdir button,
+or edit `AGENTS.md` in the in-app Monaco editor (debounced autosave).
+The scaffold ships no `"model"` key; choose your model via opencode's own
+settings or by editing `opencode.json` manually.
+
+Reset: delete `.opencode/` in the workdir and reopen the Agent Session page.
+The extension re-seeds from the bundled scaffold. There is no in-app reset
+button — deletion-and-reopen is the documented reset path.
 
 ## Windows note
 
