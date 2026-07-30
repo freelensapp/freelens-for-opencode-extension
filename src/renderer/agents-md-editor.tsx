@@ -89,9 +89,9 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
   }
 
   const badge = (() => {
-    if (status === "saving") return { text: "Saving…", color: "#b80" };
-    if (status === "saved") return { text: "Saved", color: "#080" };
-    if (status === "error") return { text: `Save failed: ${error ?? "unknown"}`, color: "#c00" };
+    if (status === "saving") return { text: "Saving…", color: "var(--colorWarning)" };
+    if (status === "saved") return { text: "Saved", color: "var(--colorOk)" };
+    if (status === "error") return { text: `Save failed: ${error ?? "unknown"}`, color: "var(--colorError)" };
     return { text: "", color: "#888" };
   })();
 
