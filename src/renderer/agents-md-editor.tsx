@@ -1,4 +1,3 @@
-import { Renderer } from "@freelensapp/extensions";
 import { loader, Editor as Monaco } from "@monaco-editor/react";
 import { ipcRenderer } from "electron";
 import { observer } from "mobx-react";
@@ -8,6 +7,7 @@ import * as monacoEditor from "monaco-editor";
 // mounts; doing it at module-eval time is the documented pattern.
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import { useEffect, useRef, useState } from "react";
+import { sectionThemeStore } from "./section-theme";
 
 // self.MonacoEnvironment worker factory — required for Monaco to find the
 // bundled worker. Assigned once at module eval.
@@ -113,7 +113,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
           <Monaco
             language="markdown"
             value={content}
-            theme={Renderer.Theme.activeTheme.get().monacoTheme}
+            theme={sectionThemeStore.monacoTheme}
             onChange={(v) => onChange(v)}
             options={{
               wordWrap: "on",

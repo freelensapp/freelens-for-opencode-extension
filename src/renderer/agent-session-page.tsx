@@ -4,6 +4,7 @@ import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { AgentsMdEditor } from "./agents-md-editor";
 import { getLaunchCommand } from "./get-launch-command";
+import { type SectionTheme, sectionThemeStore } from "./section-theme";
 
 // ponytail: extension uses raw electron ipcRenderer directly instead of the
 // Renderer.Ipc abstraction exported by @freelensapp/extensions. Reason:
@@ -49,6 +50,34 @@ interface RevealPathResult {
 interface AgentSessionPageProps {
   extension: Renderer.LensExtension;
 }
+
+const THEME_OPTIONS: { value: SectionTheme; label: string; icon: string }[] = [
+  { value: "auto", label: "Auto", icon: "brightness_auto" },
+  { value: "dark", label: "Dark", icon: "dark_mode" },
+  { value: "light", label: "Light", icon: "light_mode" },
+];
+
+const SectionThemeToggle = observer(function SectionThemeToggle() {
+  return (
+    <div style={{ display: "flex", gap: "4px" }}>
+      {THEME_OPTIONS.map((opt) => {
+        const active = sectionThemeStore.pref === opt.value;
+        return (
+          <Renderer.Component.Button
+            key={opt.value}
+            outlined={!active}
+            primary={active}
+            tooltip={`${opt.label} theme`}
+            onClick={() => sectionThemeStore.setPref(opt.value)}
+          >
+            <Renderer.Component.Icon material={opt.icon} small />
+            {opt.label}
+          </Renderer.Component.Button>
+        );
+      })}
+    </div>
+  );
+});
 
 export const AgentSessionPage = observer(function AgentSessionPage({ extension: _extension }: AgentSessionPageProps) {
   const [state, setState] = useState<PageState>({ status: "loading" });
@@ -135,22 +164,28 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
   }
 
   return (
-    <div>
-      <Renderer.Component.SubTitle title="Agent Session">
-        {state.status === "ready" && (
-          <>
-            <Renderer.Component.StatusBrick className="running" /> opencode v{state.version}
-          </>
-        )}
-        {state.status === "loading" && (
-          <>
-            <Renderer.Component.StatusBrick className="waiting" /> Checking for opencode…
-          </>
-        )}
-        {(state.status === "missing" || state.status === "error") && (
-          <Renderer.Component.StatusBrick className="failed" />
-        )}
-      </Renderer.Component.SubTitle>
+    // ponytail: plain padded div, NOT Renderer.Component.SettingLayout — that
+    // renders a full settings-page shell with its own back-button nav that
+    // replaces the cluster view (sidebar disappears). We only want edge padding.
+    <div style={{ padding: "var(--padding, 16px)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Renderer.Component.SubTitle title="Agent Session">
+          {state.status === "ready" && (
+            <>
+              <Renderer.Component.StatusBrick className="running" /> opencode v{state.version}
+            </>
+          )}
+          {state.status === "loading" && (
+            <>
+              <Renderer.Component.StatusBrick className="waiting" /> Checking for opencode…
+            </>
+          )}
+          {(state.status === "missing" || state.status === "error") && (
+            <Renderer.Component.StatusBrick className="failed" />
+          )}
+        </Renderer.Component.SubTitle>
+        <SectionThemeToggle />
+      </div>
 
       {state.status === "missing" && (
         <div>

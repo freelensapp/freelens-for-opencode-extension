@@ -1,7 +1,30 @@
-// Minimal stub for `@freelensapp/extensions` in tests. Our pure modules don't
-// import the host SDK, so this file can stay empty — vitest alias still needs
-// a target file to resolve. Add real stubs here if a future test imports the SDK.
+// Minimal stub for `@freelensapp/extensions` in tests.
+//
+// `section-theme.ts` reads `Renderer.Theme.activeTheme.get().monacoTheme` when
+// resolving the "auto" preference. The stub exposes a mutable holder so tests
+// can drive that value:
+//
+//   setActiveMonacoTheme("clouds-midnight"); // simulate host dark theme
+//   setActiveMonacoTheme("vs");              // simulate host light theme
+//
+// Everything else the extension imports from the SDK is not exercised by unit
+// tests, so Main/Common stay empty.
 
 export const Main = {};
-export const Renderer = {};
 export const Common = {};
+
+let activeMonacoTheme = "vs-dark";
+
+export function setActiveMonacoTheme(theme: string): void {
+  activeMonacoTheme = theme;
+}
+
+export const Renderer = {
+  Theme: {
+    activeTheme: {
+      get() {
+        return { monacoTheme: activeMonacoTheme };
+      },
+    },
+  },
+};
