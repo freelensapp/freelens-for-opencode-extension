@@ -52,6 +52,7 @@ interface AgentSessionPageProps {
 
 export const AgentSessionPage = observer(function AgentSessionPage({ extension: _extension }: AgentSessionPageProps) {
   const [state, setState] = useState<PageState>({ status: "loading" });
+  const [launching, setLaunching] = useState(false);
 
   const clusterId = Renderer.Catalog.getActiveCluster()?.id ?? null;
 
@@ -84,6 +85,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
 
   function launch() {
     if (state.status !== "ready" || !state.workdir) return;
+    setLaunching(true);
     const tabId = Renderer.Component.createTerminalTab({ title: "Agent Session" }).id;
     const launchCmd = getLaunchCommand(state.workdir, process.platform);
 
@@ -95,6 +97,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
       clearInterval(poll);
       clearTimeout(timeoutId);
       void Renderer.Component.terminalStore.sendCommand(launchCmd, { tabId, enter: true });
+      setLaunching(false);
     };
 
     const poll = setInterval(() => {
@@ -175,7 +178,13 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
             Working directory: <code>{state.workdir}</code>
           </div>
           <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
-            <Renderer.Component.Button primary label="Open agent session" onClick={launch} disabled={!clusterId} />
+            <Renderer.Component.Button
+              primary
+              label="Open agent session"
+              onClick={launch}
+              disabled={!clusterId || launching}
+              waiting={launching}
+            />
             <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
             <Renderer.Component.Button
               outlined
