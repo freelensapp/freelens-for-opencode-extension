@@ -1,7 +1,10 @@
 import { Main } from "@freelensapp/extensions";
 import { app, ipcMain } from "electron";
 import { checkOpencodeInstalled } from "./check-opencode-installed";
-import { computeWorkdir, ensureWorkdir } from "./get-agent-workdir";
+import { ensureHarness, resetHarness } from "./ensure-harness";
+import { computeWorkdir } from "./get-agent-workdir";
+import { assertSessionsWorkdir, safeRead, safeWrite } from "./harness-file";
+import { revealPath } from "./reveal-path";
 
 // ponytail: extension uses raw electron ipcMain directly instead of the
 // Main.Ipc abstraction exported by @freelensapp/extensions. Reason: Main.Ipc
@@ -25,12 +28,50 @@ export default class OpencodeMainExtension extends Main.LensExtension {
       }
     });
 
-    ipcMain.handle(`${CHANNEL_PREFIX}get-agent-workdir`, async (_event, clusterId: string) => {
+    // Returns { workdir, seeded }. Computes workdir, mkdir -p, seeds scaffold
+    // from out/main/scaffold/ on first open. Replaces get-agent-workdir: it
+    // returns the workdir too, so the renderer needs only this handler.
+    ipcMain.handle(`${CHANNEL_PREFIX}prepare-harness`, async (_event, clusterId: string) => {
       try {
         const workdir = computeWorkdir(app.getPath("userData"), clusterId);
-        return ensureWorkdir(workdir);
+        return ensureHarness(workdir);
       } catch (err: any) {
-        throw new Error(`Could not prepare workspace: ${err?.message ?? err}`);
+        throw new Error(`Could not prepare harness: ${err?.message ?? err}`);
+      }
+    });
+
+    ipcMain.handle(`${CHANNEL_PREFIX}read-harness-file`, async (_event, workdir: string, relPath: string) => {
+      try {
+        const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
+        return safeRead(realWd, relPath);
+      } catch (err: any) {
+        throw new Error(`Could not read harness file: ${err?.message ?? err}`);
+      }
+    });
+
+    ipcMain.handle(
+      `${CHANNEL_PREFIX}write-harness-file`,
+      async (_event, workdir: string, relPath: string, content: string) => {
+        try {
+          const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
+          return safeWrite(realWd, relPath, content);
+        } catch (err: any) {
+          throw new Error(`Could not write harness file: ${err?.message ?? err}`);
+        }
+      },
+    );
+
+    ipcMain.handle(`${CHANNEL_PREFIX}reveal-path`, async (_event, absPath: string) => {
+      return revealPath(app.getPath("userData"), absPath);
+    });
+
+    ipcMain.handle(`${CHANNEL_PREFIX}reset-harness`, async (_event, workdir: string) => {
+      try {
+        const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
+        resetHarness(realWd);
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: err?.message ?? String(err) };
       }
     });
   }
