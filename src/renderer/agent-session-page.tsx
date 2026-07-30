@@ -2,6 +2,7 @@ import { Renderer } from "@freelensapp/extensions";
 import { ipcRenderer } from "electron";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
+import { AgentsMdEditor } from "./agents-md-editor";
 import { getLaunchCommand } from "./get-launch-command";
 
 // ponytail: extension uses raw electron ipcRenderer directly instead of the
@@ -10,7 +11,7 @@ import { getLaunchCommand } from "./get-launch-command";
 // instance); its `invoke` method is an instance method, so
 // Renderer.Ipc.invoke(...) does not typecheck against
 // @freelensapp/extensions@1.10.2's declarations. Raw ipcRenderer + hardcoded
-// channel prefix matches the main side (Task 4). Upgrade path: if a future
+// channel prefix matches the main side (Task 6). Upgrade path: if a future
 // Freelens release exposes a concrete per-extension IpcRenderer instance,
 // switch back to get the auto-prefixed channel + auto-cleanup disposers.
 const CHANNEL_PREFIX = "opencode-extension:";
@@ -30,6 +31,21 @@ interface OpencodeCheckResult {
   error?: string;
 }
 
+interface PrepareHarnessResult {
+  workdir: string;
+  seeded: boolean;
+}
+
+interface ResetHarnessResult {
+  ok: boolean;
+  error?: string;
+}
+
+interface RevealPathResult {
+  ok: boolean;
+  error?: string;
+}
+
 interface AgentSessionPageProps {
   extension: Renderer.LensExtension;
 }
@@ -37,9 +53,6 @@ interface AgentSessionPageProps {
 export const AgentSessionPage = observer(function AgentSessionPage({ extension: _extension }: AgentSessionPageProps) {
   const [state, setState] = useState<PageState>({ status: "loading" });
 
-  // Renderer.Catalog.getActiveCluster() returns the ClusterInfo DTO
-  // ({ id, kubeConfigPath, contextName, ... }) — we need its `id`.
-  // observer() re-renders when activeCluster changes.
   const clusterId = Renderer.Catalog.getActiveCluster()?.id ?? null;
 
   async function refresh() {
@@ -49,15 +62,15 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
         setState({ status: "error", error: "No active cluster. Open a cluster first." });
         return;
       }
-      const [check, workdir] = await Promise.all([
+      const [check, harness] = await Promise.all([
         ipcRenderer.invoke(`${CHANNEL_PREFIX}check-opencode-installed`) as Promise<OpencodeCheckResult>,
-        ipcRenderer.invoke(`${CHANNEL_PREFIX}get-agent-workdir`, clusterId) as Promise<string>,
+        ipcRenderer.invoke(`${CHANNEL_PREFIX}prepare-harness`, clusterId) as Promise<PrepareHarnessResult>,
       ]);
       if (!check.installed) {
-        setState({ status: "missing", error: check.error });
+        setState({ status: "missing", error: check.error, workdir: harness.workdir });
         return;
       }
-      setState({ status: "ready", version: check.version, workdir });
+      setState({ status: "ready", version: check.version, workdir: harness.workdir });
     } catch (err: any) {
       setState({ status: "error", error: err?.message ?? String(err) });
     }
@@ -84,11 +97,6 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
       void Renderer.Component.terminalStore.sendCommand(launchCmd, { tabId, enter: true });
     };
 
-    // ponytail: poll terminal readiness before sending. sendCommand's internal
-    // waitUntilDefined can race with React mounting TerminalWindow, causing
-    // commands to hang or drop. We wait for the API to be ready, then
-    // sendCommand's internal waits resolve instantly. 15s fallback matches
-    // sendCommand's own timeout ceiling.
     const poll = setInterval(() => {
       const api = (Renderer.Component.terminalStore as any).getTerminalApi?.(tabId);
       if (api?.isReady) send();
@@ -96,46 +104,96 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
     timeoutId = setTimeout(send, 15_000);
   }
 
-  return (
-    <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
-      <h2>Agent Session</h2>
+  async function reveal() {
+    if (!state.workdir) return;
+    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reveal-path`, state.workdir)) as RevealPathResult;
+    if (!result.ok) {
+      // ponytail: transient reveal failures surface as a host toast, not inline red text (spec §2).
+      Renderer.Component.Notifications.error(`Reveal failed: ${result.error ?? "unknown"}`);
+    }
+  }
 
-      {state.status === "loading" && <p>Checking for opencode…</p>}
+  async function reset() {
+    if (state.status !== "ready" || !state.workdir) return;
+    // ConfirmDialog.confirm returns Promise<boolean> (true=ok, false=cancel).
+    // ConfirmDialog.open is fire-and-forget and cannot be awaited — see plan's spec reconciliation §1.
+    const ok = await Renderer.Component.ConfirmDialog.confirm({
+      message: "Delete .opencode/ and re-seed the scaffold? Your AGENTS.md is preserved.",
+      labelOk: "Delete",
+      labelCancel: "Cancel",
+    });
+    if (!ok) return;
+    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reset-harness`, state.workdir)) as ResetHarnessResult;
+    if (!result.ok) {
+      Renderer.Component.Notifications.error(`Reset failed: ${result.error ?? "unknown"}`);
+      return;
+    }
+    await refresh();
+  }
+
+  return (
+    <div>
+      <Renderer.Component.SubTitle title="Agent Session">
+        {state.status === "ready" && (
+          <>
+            <Renderer.Component.StatusBrick className="running" /> opencode v{state.version}
+          </>
+        )}
+        {state.status === "loading" && (
+          <>
+            <Renderer.Component.StatusBrick className="waiting" /> Checking for opencode…
+          </>
+        )}
+        {(state.status === "missing" || state.status === "error") && (
+          <Renderer.Component.StatusBrick className="failed" />
+        )}
+      </Renderer.Component.SubTitle>
 
       {state.status === "missing" && (
-        <div style={{ border: "1px solid #c00", padding: "0.75rem", color: "#c00" }}>
-          <p>
-            opencode not found on PATH. Install:{" "}
-            <a href="https://opencode.ai/docs/" target="_blank" rel="noreferrer">
-              https://opencode.ai/docs/
-            </a>
-          </p>
-          {state.error && <p style={{ fontSize: "0.85em" }}>Detail: {state.error}</p>}
-          <button onClick={() => void refresh()}>Retry</button>
+        <div>
+          <Renderer.Component.Icon material="error_outline" />
+          <span>opencode not found on PATH</span>
+          <Renderer.Component.Button plain href="https://opencode.ai/docs/" target="_blank">
+            opencode docs
+          </Renderer.Component.Button>
+          {state.error && <span>{state.error}</span>}
+          <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
         </div>
       )}
 
       {state.status === "error" && (
-        <div style={{ border: "1px solid #c00", padding: "0.75rem", color: "#c00" }}>
-          {state.error}
-          <button onClick={() => void refresh()}>Retry</button>
+        <div>
+          <Renderer.Component.Icon material="error_outline" />
+          <span>{state.error}</span>
+          <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
         </div>
       )}
 
-      {state.status === "ready" && (
-        <div style={{ border: "1px solid #080", padding: "0.75rem", color: "#080" }}>
-          <p>opencode detected (v{state.version}).</p>
-          <p>
+      {state.status === "ready" && state.workdir && (
+        <>
+          <div>
             Working directory: <code>{state.workdir}</code>
-          </p>
-          <button onClick={launch} disabled={!clusterId}>
-            Open agent session
-          </button>
-        </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
+            <Renderer.Component.Button primary label="Open agent session" onClick={launch} disabled={!clusterId} />
+            <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
+            <Renderer.Component.Button
+              outlined
+              tooltip="Delete .opencode/ to reseed scaffold"
+              onClick={() => void reset()}
+            >
+              <Renderer.Component.Icon material="restart_alt" small />
+              Reset
+            </Renderer.Component.Button>
+          </div>
+          <Renderer.Component.Gutter />
+          <AgentsMdEditor workdir={state.workdir} />
+        </>
       )}
 
       {/* ponytail: no test for this page — it's a thin shell over public APIs
-          (createTerminalTab + sendCommand + ipcRenderer.invoke). Manual smoke only. */}
+          (createTerminalTab + sendCommand + ipcRenderer.invoke + Monaco + host
+          components). Manual smoke only. */}
     </div>
   );
 });
