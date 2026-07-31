@@ -13,6 +13,12 @@
 export const Main = {};
 export const Common = {};
 
+class LensExtension {}
+
+function Icon() {
+  return null;
+}
+
 let activeMonacoTheme = "vs-dark";
 
 export function setActiveMonacoTheme(theme: string): void {
@@ -20,6 +26,10 @@ export function setActiveMonacoTheme(theme: string): void {
 }
 
 export const Renderer = {
+  LensExtension,
+  Component: {
+    Icon,
+  },
   Theme: {
     activeTheme: {
       get() {

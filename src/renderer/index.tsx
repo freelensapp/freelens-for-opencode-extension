@@ -1,6 +1,14 @@
 import { Renderer } from "@freelensapp/extensions";
 import { AgentSessionPage } from "./agent-session-page";
 
+const {
+  Component: { Icon },
+} = Renderer;
+
+function OpencodeIcon(props: Renderer.Component.IconProps) {
+  return <Icon {...props} material="terminal" />;
+}
+
 export default class OpencodeRendererExtension extends Renderer.LensExtension {
   clusterPages = [
     {
@@ -12,9 +20,9 @@ export default class OpencodeRendererExtension extends Renderer.LensExtension {
   clusterPageMenus = [
     {
       id: "agent-session",
-      title: "Agent Session",
+      title: "OpenCode",
       target: { pageId: "agent-session" },
-      components: {},
+      components: { Icon: OpencodeIcon },
     },
   ];
 }
