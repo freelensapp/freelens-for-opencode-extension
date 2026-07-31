@@ -2,7 +2,7 @@ import { Renderer } from "@freelensapp/extensions";
 import { ipcRenderer } from "electron";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
-import { AgentsMdEditor } from "./agents-md-editor";
+import { HarnessFileEditor } from "./agents-md-editor";
 import { getLaunchCommand } from "./get-launch-command";
 import { type SectionTheme, sectionThemeStore } from "./section-theme";
 
@@ -231,7 +231,13 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
             </Renderer.Component.Button>
           </div>
           <Renderer.Component.Gutter />
-          <AgentsMdEditor workdir={state.workdir} />
+          <HarnessFileEditor workdir={state.workdir} relPath="AGENTS.md" title="AGENTS.md" language="markdown" />
+          <HarnessFileEditor
+            workdir={state.workdir}
+            relPath=".opencode/opencode.json"
+            title="Permissions (.opencode/opencode.json)"
+            language="json"
+          />
         </>
       )}
 

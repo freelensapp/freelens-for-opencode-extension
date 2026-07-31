@@ -1,4 +1,3 @@
-# permissions
 # custom agents
 # skills
 - explore and document every namespace and build a skill
@@ -9,5 +8,4 @@
 
 # UI
 ## show harness artifacts
-## add icon on sidebar item
 ## add buttons on cluster items

@@ -24,11 +24,20 @@ const SAVE_DEBOUNCE_MS = 500;
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-interface AgentsMdEditorProps {
+interface HarnessFileEditorProps {
   workdir: string;
+  // Path relative to workdir. Defaults to AGENTS.md for backwards compat.
+  relPath?: string;
+  title?: string;
+  language?: string;
 }
 
-export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: AgentsMdEditorProps) {
+export const HarnessFileEditor = observer(function HarnessFileEditor({
+  workdir,
+  relPath = "AGENTS.md",
+  title = relPath,
+  language = "markdown",
+}: HarnessFileEditorProps) {
   const [content, setContent] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -38,7 +47,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
   // when the editor load itself equalled the on-disk content.
   const committedRef = useRef<string>("");
 
-  // Load AGENTS.md once per workdir.
+  // Load file once per workdir/relPath.
   useEffect(() => {
     let cancelled = false;
     setLoaded(false);
@@ -46,7 +55,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
     setError(undefined);
     (async () => {
       try {
-        const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}read-harness-file`, workdir, "AGENTS.md")) as {
+        const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}read-harness-file`, workdir, relPath)) as {
           content: string;
           exists: boolean;
         };
@@ -65,7 +74,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
       cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [workdir]);
+  }, [workdir, relPath]);
 
   function onChange(value: string | undefined) {
     const next = value ?? "";
@@ -74,7 +83,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-harness-file`, workdir, "AGENTS.md", next);
+        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-harness-file`, workdir, relPath, next);
         committedRef.current = next;
         setStatus("saved");
         setError(undefined);
@@ -98,7 +107,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
   return (
     <div style={{ marginTop: "1rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
-        <strong>AGENTS.md</strong>
+        <strong>{title}</strong>
         {badge.text && <span style={{ color: badge.color, fontSize: "0.85em" }}>{badge.text}</span>}
       </div>
       <div
@@ -111,7 +120,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
       >
         {loaded ? (
           <Monaco
-            language="markdown"
+            language={language}
             value={content}
             theme={sectionThemeStore.monacoTheme}
             onChange={(v) => onChange(v)}
@@ -124,7 +133,7 @@ export const AgentsMdEditor = observer(function AgentsMdEditor({ workdir }: Agen
             loading={<p style={{ padding: "0.5rem" }}>Loading editor…</p>}
           />
         ) : (
-          <p style={{ padding: "0.5rem" }}>Loading AGENTS.md…</p>
+          <p style={{ padding: "0.5rem" }}>Loading {title}…</p>
         )}
       </div>
       {/* ponytail: no test for this component — Monaco + electron ipcRenderer
