@@ -107,15 +107,16 @@ reopen the session. The scaffold re-seeds clean.
 # Video demo
 
 **The situation:**
-- Pod status: CreateContainerConfigError (new pod can't start)
+- Pod status: `CreateContainerConfigError` (new pod can't start)
 
 **What the agent does:**
-1. `kubectl get pods, get deployments, get events` — notices CreateContainerConfigError
-2.  reads secret key error
-3. inspects keys
+1. `kubectl get pods, get deployments, get events` — notices `CreateContainerConfigError`
+2. Reads secret key error
+3. Inspects keys
 4. Identifies key mismatch: `DB_PASS` should be `DB_PASSWORD`
 5. Fixes and waits for pod to come back healthy
-<video src="docs/video/demo1.mp4" width="800" controls></video>
+
+[▶️ Watch demo 1](https://github.com/freelensapp/freelens-for-opencode-extension/blob/main/docs/video/demo1.mp4?raw=true)
 
 **The situation:**
 - Pod restarts: increasing restart count
@@ -127,7 +128,8 @@ reopen the session. The scaffold re-seeds clean.
 4. Recommends bumping to 256Mi
 5. Fixes: applies good deployment manifest
 6. Verifies pod stabilizes
-<video src="docs/video/demo2.mp4" width="800" controls></video>
+
+[▶️ Watch demo 2](https://github.com/freelensapp/freelens-for-opencode-extension/blob/main/docs/video/demo2.mp4?raw=true)
 
 ## Developing
 
