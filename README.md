@@ -17,6 +17,17 @@ collapses that gap. Click **OpenCode** under any cluster and you get a
 fully-provisioned opencode session inside Freelens — same KUBECONFIG, same
 workspace, zero configuration.
 
+🚀 Your agent can do literally everything you'd do with `kubectl` —
+inspect, debug, deploy, scale, troubleshoot. But that's just the start.
+
+It owns a **full workspace** where it can create manifests, write
+configuration files, customize your agent, scaffold Helm charts, and architect entire complex
+applications from scratch. 
+
+Think of it as a senior DevOps engineer that
+lives inside your cluster sidebar, ready to build anything you describe.
+🛠️✨
+
 ## Features
 
 - **One-click sessions** — click the sidebar entry, get a terminal dock
@@ -117,7 +128,6 @@ reopen the session. The scaffold re-seeds clean.
 5. Fixes: applies good deployment manifest
 6. Verifies pod stabilizes
 <video src="docs/video/demo2.mp4" width="800" controls></video>
-
 
 ## Developing
 
