@@ -25,14 +25,25 @@ workspace, zero configuration.
   `<userData>/opencode-sessions/<cluster-id>/`. Sessions never collide.
 - **K8s-aware harness** — `AGENTS.md`, `skills`, `mcp`, `custom agents` and **any opencode feature** is
   available automatically. Editable at any time.
-- **In-app AGENTS.md editor** — full Monaco editor inside Freelens with
+- **In-app AGENTS.md editor** — full editor inside Freelens with
   debounced autosave and theme matching.
-- **Permission editor** — edit `.opencode/opencode.json` in-app. Tune which shell commands the AI agent can run (e.g.
-  read-only kubectl, deny destructive mutations).
+- **Permission editor** — a JSON editor for `.opencode/opencode.json`
+  built right into the session page. Define exactly which shell commands
+  the AI agent may run with `allow`, `ask`, or `deny` rules. Ships with
+  safe defaults (destructive operations require confirmation), it is scoped per cluster so production and staging clusters
+  stay independently protected.
+<img src="docs/images/permission-settings.png" width="800" alt="OpenCode permission editor">
+
 - **Pre-flight check** — probes your PATH for opencode upfront. If it's
   missing you see a clear banner with a retry button.
 - **Zero bundled binary** — you install opencode once on your system; the
   extension uses it. Works on macOS, Linux, and Windows (WSL recommended).
+
+Every feature is powered by [OpenCode](https://opencode.ai) itself — the
+agentic engine that drives the AI session. This extension layers Freelens
+integration on top (sidebar launch, in-app editors, KUBECONFIG wiring,
+per-cluster workdirs), but permissions, skills, MCPs, custom agents, and
+AGENTS.md instructions all run through OpenCode's native engine.
 
 ## Quick start
 
@@ -64,14 +75,49 @@ Each cluster gets a persistent workspace:
 ```
 
 On first open, the extension copies a bundled scaffold into the workdir
-with safe k8s defaults (read-only kubectl, deny destructive mutations).
-After that the harness is yours — edit `AGENTS.md` in the in-app
-editor, or reveal the workdir in your file manager to edit everything
-with your own tools. Every opencode feature is scoped to that cluster:
-skills, MCPs, custom instructions, agents, and permission rules.
+with safe k8s defaults — all bash commands allowed by default, but
+destructive operations like `kubectl delete`, `kubectl drain`, and
+`helm uninstall` set to `ask` for confirmation. Open the in-app
+**permission editor** to tighten or loosen these rules at any time. Each
+rule maps a shell command pattern to `allow` (run silently), `ask`
+(prompt the user), or `deny` (block outright). Because permissions live
+per cluster, you can lock down production tightly while keeping staging
+more permissive — no global config collisions.
+
+After that the harness is yours — edit `AGENTS.md` and permissions in
+the in-app editors, or reveal the workdir in your file manager
+to edit everything with your own tools. Every opencode feature is
+scoped to that cluster: skills, MCPs, custom instructions, agents, and
+permission rules.
 
 **Reset:** delete the `.opencode/` directory inside the workdir and
 reopen the session. The scaffold re-seeds clean.
+
+# Video demo
+
+**The situation:**
+- Pod status: CreateContainerConfigError (new pod can't start)
+
+**What the agent does:**
+1. `kubectl get pods, get deployments, get events` — notices CreateContainerConfigError
+2.  reads secret key error
+3. inspects keys
+4. Identifies key mismatch: `DB_PASS` should be `DB_PASSWORD`
+5. Fixes and waits for pod to come back healthy
+<video src="docs/video/demo1.mp4" width="800" controls></video>
+
+**The situation:**
+- Pod restarts: increasing restart count
+
+**What the agent does:**
+1. `kubectl get pods -n freelens-agent-demo` — notices restarts
+2. `kubectl describe pod` shows `OOMKilled` with exit code 137
+3. Inspects resource limits in deployment, identifies 16Mi as insufficient
+4. Recommends bumping to 256Mi
+5. Fixes: applies good deployment manifest
+6. Verifies pod stabilizes
+<video src="docs/video/demo2.mp4" width="800" controls></video>
+
 
 ## Developing
 
