@@ -117,7 +117,7 @@ reopen the session. The scaffold re-seeds clean.
 5. Fixes and waits for pod to come back healthy
 
 <p align="center">
-  <video src="[https://github.com/user-attachments/assets/xxxx-xxxx](https://github.com/user-attachments/assets/528e3f01-c9d1-4da3-a748-cc7a6bd80cb7)" width="80%" controls></video>
+  <video src="https://github.com/user-attachments/assets/528e3f01-c9d1-4da3-a748-cc7a6bd80cb7" width="80%" controls></video>
 </p>
 
 **The situation:**
@@ -131,7 +131,9 @@ reopen the session. The scaffold re-seeds clean.
 5. Fixes: applies good deployment manifest
 6. Verifies pod stabilizes
 
-[▶️ Watch demo 2](https://github.com/freelensapp/freelens-for-opencode-extension/blob/main/docs/video/demo2.mp4?raw=true)
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/4843056a-f8d1-486e-a828-40965c92a1c7" width="80%" controls></video>
+</p>
 
 ## Developing
 
