@@ -116,7 +116,9 @@ reopen the session. The scaffold re-seeds clean.
 4. Identifies key mismatch: `DB_PASS` should be `DB_PASSWORD`
 5. Fixes and waits for pod to come back healthy
 
-[▶️ Watch demo 1](https://github.com/freelensapp/freelens-for-opencode-extension/blob/main/docs/video/demo1.mp4?raw=true)
+<p align="center">
+  <video src="[https://github.com/user-attachments/assets/xxxx-xxxx](https://github.com/user-attachments/assets/528e3f01-c9d1-4da3-a748-cc7a6bd80cb7)" width="80%" controls></video>
+</p>
 
 **The situation:**
 - Pod restarts: increasing restart count
