@@ -1,6 +1,5 @@
 # @freelensapp/opencode-extension
 
-[![npm version](https://img.shields.io/npm/v/@freelensapp/opencode-extension)](https://www.npmjs.com/package/@freelensapp/opencode-extension)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Run an OpenCode AI agent session scoped to any Kubernetes cluster, straight
@@ -8,7 +7,7 @@ from the Freelens sidebar. One click launches `opencode` in a docked terminal
 tab with `KUBECONFIG` wired, a k8s-aware harness pre-seeded, and an in-app
 AGENTS.md editor.
 
-<img src="docs/screenshot.png" width="800" alt="OpenCode in Freelens sidebar">
+<img src="docs/images/freelens-opencode-screenshot.png" width="800" alt="OpenCode in Freelens sidebar">
 
 ## Why
 
