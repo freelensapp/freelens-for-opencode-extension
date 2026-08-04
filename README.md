@@ -1,160 +1,96 @@
 # @freelensapp/opencode-extension
 
-A Freelens extension that adds a one-click **Agent Session** entry under each
-cluster's sidebar. Clicking `[Open agent session]` launches a built-in Freelens
-terminal dock tab running [`opencode`](https://opencode.ai) in a per-cluster
-scratch directory. Because Freelens' built-in terminal already injects
-`KUBECONFIG` pointing at the active cluster's auth proxy, every `kubectl` the
-opencode agent runs hits the selected cluster with no extra context plumbing.
+[![npm version](https://img.shields.io/npm/v/@freelensapp/opencode-extension)](https://www.npmjs.com/package/@freelensapp/opencode-extension)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
+Run an OpenCode AI agent session scoped to any Kubernetes cluster, straight
+from the Freelens sidebar. One click launches `opencode` in a docked terminal
+tab with `KUBECONFIG` wired, a k8s-aware harness pre-seeded, and an in-app
+AGENTS.md editor.
+
+<img src="docs/screenshot.png" width="800" alt="OpenCode in Freelens sidebar">
+
+## Why
+
+Operating Kubernetes clusters means constant context-switching between
+Freelens and a separate terminal for AI-assisted work. This extension
+collapses that gap. Click **OpenCode** under any cluster and you get a
+fully-provisioned opencode session inside Freelens — same KUBECONFIG, same
+workspace, zero configuration.
 
 ## Features
 
-- Sidebar entry "Agent Session" on every cluster page.
-- Pre-flight check: probes PATH for `opencode`; red banner + retry button if
-  missing.
-- Per-cluster isolated workdir under `<userData>/opencode-sessions/<safe-id>/`.
-- One click → new terminal dock tab, auto-focused, running
-  `cd "<workdir>" && opencode`. Each click = independent session.
-- Zero bundled binary. Works on any OS where the user has installed opencode.
-- Persistent, editable per-cluster agent harness under
-  `<userData>/opencode-sessions/<safe-id>/.opencode/` + `AGENTS.md`. Seeded
-  from a bundled k8s-aware scaffold on first open; survives across sessions;
-  fully user-owned after seeding. Edit any harness file via the Reveal workdir
-  button; AGENTS.md also editable in-app via Monaco.
-- Bundled scaffold ships `opencode.json` k8s permission rules (allow read-only
-  kubectl, deny destructive mutations, `webfetch=ask`) and a k8s-aware
-  `AGENTS.md`.
-- Reset path: delete `.opencode/` in the workdir (via Reveal) and reopen the
-  Agent Session page — `prepare-harness` re-seeds. No reset button.
+- **One-click sessions** — click the sidebar entry, get a terminal dock
+  tab running opencode pre-cd'd into the cluster workspace.
+- **Per-cluster isolation** — each cluster gets its own workdir at
+  `<userData>/opencode-sessions/<cluster-id>/`. Sessions never collide.
+- **K8s-aware harness** — `AGENTS.md` and `.opencode/opencode.json` are
+  seeded automatically with read-only kubectl permissions, safe defaults,
+  and cluster guardrails. Editable at any time.
+- **In-app AGENTS.md editor** — full Monaco editor inside Freelens with
+  debounced autosave and theme matching.
+- **Pre-flight check** — probes your PATH for opencode upfront. If it's
+  missing you see a clear banner with a retry button.
+- **Zero bundled binary** — you install opencode once on your system; the
+  extension uses it. Works on macOS, Linux, and Windows (WSL recommended).
 
-## Install
+## Quick start
 
-### 1. Install opencode separately
+### 1. Install opencode
 
-See <https://opencode.ai/docs/>. The extension does NOT install or update
-opencode for you.
+[Download and install opencode](https://opencode.ai/docs/) for your
+platform. The extension detects it via `PATH` — it does not bundle or
+update opencode.
 
 ### 2. Install the extension
 
-Drop the built `out/` directory into Freelens' extensions folder, or symlink
-this repo into your local extensions dir per Freelens' documentation.
+Open Freelens, go to **Extensions** (`Ctrl+Shift+E`), drag
+`@freelensapp/opencode-extension-x.y.z.tgz` into the window, and enable it.
 
-## Local testing
+### 3. Launch a session
 
-### Pack and install (one-shot)
+Click **OpenCode** in any cluster sidebar. A terminal tab opens,
+navigates to the cluster workspace, and starts opencode. Repeat per
+cluster — each session is independent.
 
-```sh
-pnpm build
-pnpm pack          # produces @freelensapp/opencode-extension-0.1.0.tgz
-```
+## How it works
 
-Open Freelens → Extensions (`Ctrl+Shift+E` / `Cmd+Shift+E`) → drag the `.tgz`
-into the window or use the file picker. Enable it.
-
-### Symlink for faster iteration
-
-```powershell
-# Windows — junction to avoid rebuild copies
-New-Item -ItemType Junction -Path "$env:LOCALAPPDATA\Freelens\extensions\freelens-opencode-extension" -Target "C:\full\path\to\freelens-opencode-extension"
-```
-
-```sh
-# macOS / Linux
-ln -s /full/path/to/freelens-opencode-extension ~/.local/share/Freelens/extensions/freelens-opencode-extension
-```
-
-Then: `pnpm build` → `Ctrl+R` / `Cmd+R` in Freelens to reload.
-
-### Debug
-
-- **Renderer errors:** `Ctrl+Shift+I` in Freelens → Console tab.
-- **Main errors:** launch Freelens from a terminal; logs prefixed
-  `[EXTENSION]:` appear on stdout. The Freelens Extensions page also shows
-  activation errors.
-
-## Build
-
-```sh
-pnpm install
-pnpm build        # emits out/main/index.js + out/renderer/index.js
-```
-
-## Develop
-
-```sh
-pnpm dev          # if electron-vite dev is wired; otherwise build and reload host
-```
-
-## Test
-
-```sh
-pnpm test:unit    # vitest run — pure modules only (main helpers spec'd)
-pnpm type:check   # tsc --noEmit
-pnpm lint:check   # biome check
-```
-
-The renderer page is a thin shell over Freelens public APIs
-(`Renderer.Component.createTerminalTab` /
-`Renderer.Component.terminalStore.sendCommand` /
-`Renderer.Catalog.getActiveCluster` /
-`Renderer.Catalog.activeCluster.get()` /
-raw `ipcRenderer.invoke`); it is smoke-tested manually — no component unit test.
-
-## Architecture
-
-Two-process Electron extension mirroring `freelens-example-extension`:
-
-- **Main process** (`src/main/index.ts`) — `OpencodeMainExtension extends
-  Main.LensExtension`, registers five IPC handlers via raw `electron.ipcMain`
-  using a hardcoded `opencode-extension:` channel prefix (see Gotchas skill
-  for why we don't use `Main.Ipc`): `check-opencode-installed`,
-  `prepare-harness`, `read-harness-file`, `write-harness-file`, `reveal-path`.
-  Backed by pure modules under `src/main/`: `check-opencode-installed.ts`
-  (spawn `opencode --version`, parse, never reject),
-  `get-agent-workdir.ts` (sanitize cluster id, ensure dir),
-  `scaffold-source.ts` / `ensure-harness.ts` (seed the bundled harness on
-  first open), `harness-file.ts` (the `safeResolve` security choke point),
-  and `reveal-path.ts` (open the workdir in the OS file manager).
-- **Renderer** (`src/renderer/`) — `OpencodeRendererExtension extends
-  Renderer.LensExtension` registering one cluster page + menu
-  (`agent-session`). The page is a MobX `observer` status card that calls
-  `Renderer.Component.createTerminalTab` + `terminalStore.sendCommand` to
-  launch `opencode` in a built-in terminal dock tab. `KUBECONFIG` is inherited
-  from the active cluster's auth proxy by Freelens' built-in terminal infra
-  — the extension never reads or mutates it.
-
-Runtime globals (`@freelensapp/extensions`, `mobx`, `react`, ...) injected by
-the Freelens host. Monaco is the exception — `monaco-editor` and
-`@monaco-editor/react` are the extension's first runtime dependencies
-(bundled into `out/renderer/` at build, shipped in the `.tgz`).
-
-See `.opencode/skills/freelens-opencode-extension-architecture/SKILL.md`.
-
-## Harness
-
-Each cluster session has a persistent `.opencode/` tree under
-`<userData>/opencode-sessions/<safe-cluster-id>/`:
+Each cluster gets a persistent workspace:
 
 ```
 <userData>/opencode-sessions/<safe-cluster-id>/
   .opencode/
-    opencode.json
-  AGENTS.md
+    opencode.json          # kubectl permission rules
+  AGENTS.md                # your cluster-specific instructions
 ```
 
-On first open, the extension copies a bundled k8s-aware scaffold
-(`src/main/scaffold/`) into the workdir. After that, the harness is fully
-user-owned — edit any file in your own editor via the Reveal workdir button,
-or edit `AGENTS.md` in the in-app Monaco editor (debounced autosave).
-The scaffold ships no `"model"` key; choose your model via opencode's own
-settings or by editing `opencode.json` manually.
+On first open, the extension copies a bundled scaffold into the workdir
+with safe k8s defaults (read-only kubectl, deny destructive mutations).
+After that the harness is yours — edit `AGENTS.md` in the in-app Monaco
+editor, or reveal the workdir in your file manager to edit everything
+with your own tools.
 
-Reset: delete `.opencode/` in the workdir and reopen the Agent Session page.
-The extension re-seeds from the bundled scaffold. There is no in-app reset
-button — deletion-and-reopen is the documented reset path.
+**Reset:** delete the `.opencode/` directory inside the workdir and
+reopen the session. The scaffold re-seeds clean.
 
-## Windows note
+## Developing
 
-opencode native Windows support is "still in progress" upstream; WSL is the
-recommended path. The status page prints a warning when
-`process.platform === "win32"`.
+Dev setup, build, test, and debugging instructions live in
+[CONTRIBUTING.md](./CONTRIBUTING.md). Quick reference:
+
+```sh
+pnpm install
+pnpm build        # emits out/main/index.js + out/renderer/index.js
+pnpm test:unit    # vitest
+pnpm type:check   # tsc --noEmit
+pnpm lint:check   # biome
+```
+
+The extension follows Freelens' two-process model (`src/main/` +
+`src/renderer/`) and relies on host-injected globals (`mobx`, `react`,
+Freelens public APIs). The only bundled runtime dependency is Monaco
+Editor.
+
+## License
+
+[MIT](./LICENSE) © 2025-2026 Freelens Authors
