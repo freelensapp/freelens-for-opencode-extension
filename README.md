@@ -68,7 +68,8 @@ On first open, the extension copies a bundled scaffold into the workdir
 with safe k8s defaults (read-only kubectl, deny destructive mutations).
 After that the harness is yours — edit `AGENTS.md` in the in-app Monaco
 editor, or reveal the workdir in your file manager to edit everything
-with your own tools.
+with your own tools. Every opencode feature is scoped to that cluster:
+skills, MCPs, custom instructions, agents, and permission rules.
 
 **Reset:** delete the `.opencode/` directory inside the workdir and
 reopen the session. The scaffold re-seeds clean.
