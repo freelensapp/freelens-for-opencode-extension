@@ -119,6 +119,18 @@ describe("provider workspaces", () => {
     }
   });
 
+  it("rejects a symlinked cluster-key parent before creating a provider workdir outside sessions", () => {
+    const userData = createRoot();
+    const outside = createRoot();
+    const workdir = computeProviderWorkdir(userData, "cluster-1", "opencode");
+    const clusterDir = path.dirname(workdir);
+    mkdirSync(path.dirname(clusterDir), { recursive: true });
+    symlinkSync(outside, clusterDir, process.platform === "win32" ? "junction" : "dir");
+
+    expect(() => prepareProviderWorkspace(userData, "cluster-1", "opencode")).toThrow(/Forbidden path/);
+    expect(existsSync(path.join(outside, "opencode"))).toBe(false);
+  });
+
   it("reveals computed real provider workdir", async () => {
     const userData = createRoot();
     const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "claude");

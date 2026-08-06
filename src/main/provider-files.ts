@@ -42,8 +42,16 @@ function getWorkdir(userData: string, clusterId: string, providerId: string): st
   const sessionsRoot = path.join(userData, "ai-cli-sessions");
   mkdirSync(sessionsRoot, { recursive: true });
   const workdir = computeProviderWorkdir(userData, clusterId, providerId);
-  mkdirSync(workdir, { recursive: true });
   const realSessionsRoot = realpathSync(sessionsRoot);
+  let realParent: string;
+  try {
+    realParent = realpathSync(nearestExistingParent(workdir));
+  } catch {
+    throw new Error("Forbidden path");
+  }
+  if (!isInside(realSessionsRoot, realParent)) throw new Error("Forbidden path");
+
+  mkdirSync(workdir, { recursive: true });
   const realWorkdir = realpathSync(workdir);
 
   if (!isInside(realSessionsRoot, realWorkdir)) throw new Error("Forbidden path");
