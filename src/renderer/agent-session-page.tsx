@@ -6,6 +6,8 @@ import { HarnessFileEditor } from "./agents-md-editor";
 import { getLaunchCommand } from "./get-launch-command";
 import { type SectionTheme, sectionThemeStore } from "./section-theme";
 
+import type { ProviderCheckResult } from "../common/ai-cli-providers";
+
 // ponytail: extension uses raw electron ipcRenderer directly instead of the
 // Renderer.Ipc abstraction exported by @freelensapp/extensions. Reason:
 // Renderer.Ipc is published as the ABSTRACT CLASS IpcRenderer (not an
@@ -23,12 +25,6 @@ interface PageState {
   status: Status;
   version?: string;
   workdir?: string;
-  error?: string;
-}
-
-interface OpencodeCheckResult {
-  installed: boolean;
-  version?: string;
   error?: string;
 }
 
@@ -93,11 +89,11 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
         return;
       }
       const [check, harness] = await Promise.all([
-        ipcRenderer.invoke(`${CHANNEL_PREFIX}check-opencode-installed`) as Promise<OpencodeCheckResult>,
+        ipcRenderer.invoke("ai-cli-extension:check-provider", "opencode") as Promise<ProviderCheckResult>,
         ipcRenderer.invoke(`${CHANNEL_PREFIX}prepare-harness`, clusterId) as Promise<PrepareHarnessResult>,
       ]);
-      if (!check.installed) {
-        setState({ status: "missing", error: check.error, workdir: harness.workdir });
+      if (check.status !== "ready") {
+        setState({ status: check.status, error: check.error, workdir: harness.workdir });
         return;
       }
       setState({ status: "ready", version: check.version, workdir: harness.workdir });
