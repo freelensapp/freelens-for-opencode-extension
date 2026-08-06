@@ -42,7 +42,7 @@ export function checkProvider(
       const { code } = (typeof error === "object" && error ? error : {}) as NodeJS.ErrnoException;
       const message = error instanceof Error ? error.message : String(error);
 
-      if (!code || code === "ENOENT") {
+      if (code === "ENOENT") {
         settle({
           status: "missing",
           error: `${provider.name} not found on PATH${code ? ` (${code})` : ""}`,

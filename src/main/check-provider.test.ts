@@ -70,6 +70,18 @@ describe("checkProvider", () => {
     });
   });
 
+  it("reports generic child errors", async () => {
+    const fake = makeFakeChild({ complete: false });
+    const spawn = vi.fn(() => fake.child);
+
+    queueMicrotask(() => fake.child.emit("error", new Error("permission denied")));
+
+    await expect(checkProvider("opencode", spawn as Spawn)).resolves.toEqual({
+      status: "error",
+      error: "OpenCode probe failed: permission denied",
+    });
+  });
+
   it("returns missing for Windows command-not-found output", async () => {
     const spawn = vi.fn(
       () => makeFakeChild({ stderr: "'opencode' is not recognized as a command", exitCode: 1 }).child,
