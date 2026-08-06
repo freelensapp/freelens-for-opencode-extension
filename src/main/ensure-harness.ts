@@ -1,5 +1,6 @@
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
+import { computeProviderWorkdir } from "./get-provider-workdir";
 import { resolveScaffoldDir } from "./scaffold-source";
 
 export interface PrepareHarnessResult {
@@ -34,6 +35,23 @@ export function ensureHarness(workdir: string, scaffoldDir: string = resolveScaf
     seeded = true;
   }
   return { workdir, seeded };
+}
+
+export function prepareOpenCodeHarness(
+  userData: string,
+  clusterId: string,
+  scaffoldDir: string = resolveScaffoldDir(),
+): PrepareHarnessResult {
+  const workdir = computeProviderWorkdir(userData, clusterId, "opencode");
+  // Legacy workdirs sanitized IDs without a digest.
+  const legacyWorkdir = path.join(userData, "opencode-sessions", clusterId.replace(/[^a-zA-Z0-9-_]/g, "_"));
+
+  if (existsSync(legacyWorkdir) && !existsSync(workdir)) {
+    mkdirSync(path.dirname(workdir), { recursive: true });
+    renameSync(legacyWorkdir, workdir);
+  }
+
+  return ensureHarness(workdir, scaffoldDir);
 }
 
 // resetHarness deletes only .opencode/ (the scaffolded config dir). The user's

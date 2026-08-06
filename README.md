@@ -33,7 +33,7 @@ lives inside your cluster sidebar, ready to build anything you describe.
 - **One-click sessions** — click the sidebar entry, get a terminal dock
   tab running opencode pre-cd'd into the cluster workspace.
 - **Per-cluster isolation** — each cluster gets its own workdir at
-  `<userData>/opencode-sessions/<cluster-id>/`. Sessions never collide.
+  `<userData>/ai-cli-sessions/<safe-cluster-id>/opencode/`. Sessions never collide.
 - **K8s-aware harness** — `AGENTS.md`, `skills`, `mcp`, `custom agents` and **any opencode feature** is
   available automatically. Editable at any time.
 - **In-app AGENTS.md editor** — full editor inside Freelens with
@@ -79,11 +79,14 @@ cluster — each session is independent.
 Each cluster gets a persistent workspace:
 
 ```
-<userData>/opencode-sessions/<safe-cluster-id>/
+<userData>/ai-cli-sessions/<safe-cluster-id>/opencode/
   .opencode/
     opencode.json          # kubectl permission rules
   AGENTS.md                # your cluster-specific instructions
 ```
+
+`<safe-cluster-id>` replaces unsupported characters in the cluster ID and appends a short digest, preserving
+isolation when different IDs sanitize to the same value.
 
 On first open, the extension copies a bundled scaffold into the workdir
 with safe k8s defaults — all bash commands allowed by default, but

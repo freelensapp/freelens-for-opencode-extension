@@ -15,17 +15,20 @@ the Freelens host. Monaco is the exception — `monaco-editor` and
 `@monaco-editor/react` are the extension's first runtime deps (bundled into
 `out/renderer/` via Vite `?worker` imports, shipped in the `.tgz`).
 
-## Per-cluster harness (phase 1)
+## Per-cluster provider workspace (phase 1)
 
 Every cluster session gets a persistent `.opencode/` tree under
-`<userData>/opencode-sessions/<safe-id>/`, seeded from a bundled k8s-aware
-scaffold on first open (`ensure-harness.ts`). Main registers four IPC
+`<userData>/ai-cli-sessions/<safe-id>/opencode/`, seeded from a bundled k8s-aware
+scaffold on first open (`ensure-harness.ts`). `get-provider-workdir.ts` computes
+this path with `computeProviderWorkdir()`; its safe cluster ID replaces unsupported
+characters and appends a short digest. Main registers four IPC
 handlers (`prepare-harness`, `read-harness-file`, `write-harness-file`,
 `reveal-path`) — all on the `opencode-extension:` prefix. Every read/write
 routes through `safeResolve(workdir, relPath)` in `harness-file.ts`, which
 anchors against `realpathSync(workdir)` to prevent path escape. The old
 `get-agent-workdir` IPC handler was dropped (`prepare-harness` returns the
-workdir); the `computeWorkdir`/`ensureWorkdir` pure module remains in use.
+workdir); `prepareOpenCodeHarness()` moves an existing legacy OpenCode workspace
+before seeding the provider workspace.
 The renderer page (`agent-session-page.tsx`) calls `prepare-harness` once on
 load and renders a Monaco-based `AGENTS.md` editor with debounced autosave
 plus a Reveal workdir button. `monaco-editor` + `@monaco-editor/react` are
