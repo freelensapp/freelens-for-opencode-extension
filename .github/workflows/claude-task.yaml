@@ -144,27 +144,11 @@ jobs:
         id: parse-model
         shell: bash
         run: |
-          DEFAULT_MODEL="claude-opus-4-8"
-          TEXT="${PROMPT_INPUT}"
-
-          MODEL_ALIAS=$(echo "$TEXT" \
-            | grep -oP '\[model:[^\]]+\]' \
-            | head -1 \
-            | sed 's/\[model://;s/\]//' || true)
-
-          MODEL_ALIAS="${MODEL_ALIAS:-}"
-          case "$MODEL_ALIAS" in
-            fable|fable-5|claude-fable-5)               MODEL_ID="claude-fable-5" ;;
-            opus|opus-4|opus-4.8|claude-opus-4-8)       MODEL_ID="claude-opus-4-8" ;;
-            sonnet|sonnet-4|sonnet-4.6|claude-sonnet-4-6) MODEL_ID="claude-sonnet-4-6" ;;
-            haiku|haiku-4|haiku-4.5)                    MODEL_ID="claude-haiku-4-5-20251001" ;;
-            "")                                          MODEL_ID="$DEFAULT_MODEL" ;;
-            *)                                           MODEL_ID="$MODEL_ALIAS" ;;
-          esac
-
-          echo "Resolved model: '${MODEL_ALIAS:-<none>}' -> $MODEL_ID"
+          MODEL_ID=$(bash .github/scripts/resolve-claude-model.sh "$DISPATCH_MODEL" "$PROMPT_INPUT")
+          echo "Resolved model: $MODEL_ID"
           echo "model=$MODEL_ID" >> "$GITHUB_OUTPUT"
         env:
+          DISPATCH_MODEL: ${{ github.event.inputs.model || '' }}
           PROMPT_INPUT: ${{ github.event.inputs.prompt || '' }}
 
       - name: Use the latest AGENTS.md

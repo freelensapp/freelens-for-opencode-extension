@@ -98,7 +98,11 @@ For work that isn't tied to a comment, run it by hand:
    - **model** — pick from the dropdown.
    - **runs-on** — pick the runner.
    - **create-pr** — if checked, Claude creates a `claude/` branch, commits,
-     pushes, and opens a PR following the repo's commit/PR conventions.
+      pushes, and opens a PR following the repo's commit/PR conventions.
+
+The model menu wins over a `[model:...]` prompt marker. If no menu model is
+available, the marker wins; otherwise the default is `claude-opus-4-8`. Model
+aliases include `fable` and `fable-5`.
 
 ## What Claude is allowed to do
 
