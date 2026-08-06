@@ -19,49 +19,41 @@ import {
 // (e.g. `Main.Ipc.getInstance(...).handle(...)`), switch back to get the
 // auto-prefixed channel + auto-cleanup disposers. Channel prefix below is
 // unique enough to avoid collisions with other extensions.
-const CHANNEL_PREFIX = "opencode-extension:";
+const CHANNEL_PREFIX = "ai-cli-extension:";
 
-export default class OpencodeMainExtension extends Main.LensExtension {
+export default class AiCliMainExtension extends Main.LensExtension {
   async onActivate() {
-    ipcMain.removeHandler("ai-cli-extension:check-provider");
-    ipcMain.handle("ai-cli-extension:check-provider", (_event, providerId: string) => checkProvider(providerId));
+    const channels = [
+      "check-provider",
+      "prepare-workspace",
+      "read-provider-file",
+      "write-provider-file",
+      "reveal-workspace",
+      "reset-provider",
+    ];
 
-    // Existing OpenCode channels stay stable while their file operations derive
-    // the provider workdir from trusted cluster and provider inputs.
-    ipcMain.handle(`${CHANNEL_PREFIX}prepare-harness`, async (_event, clusterId: string) => {
-      try {
-        return prepareProviderWorkspace(app.getPath("userData"), clusterId, "opencode");
-      } catch (err: any) {
-        throw new Error(`Could not prepare harness: ${err?.message ?? err}`);
-      }
-    });
+    for (const channel of channels) ipcMain.removeHandler(`${CHANNEL_PREFIX}${channel}`);
 
-    ipcMain.handle(`${CHANNEL_PREFIX}read-harness-file`, async (_event, clusterId: string, relPath: string) => {
-      try {
-        return readProviderFile(app.getPath("userData"), clusterId, "opencode", relPath);
-      } catch (err: any) {
-        throw new Error(`Could not read harness file: ${err?.message ?? err}`);
-      }
-    });
-
-    ipcMain.handle(
-      `${CHANNEL_PREFIX}write-harness-file`,
-      async (_event, clusterId: string, relPath: string, content: string) => {
-        try {
-          return writeProviderFile(app.getPath("userData"), clusterId, "opencode", relPath, content);
-        } catch (err: any) {
-          throw new Error(`Could not write harness file: ${err?.message ?? err}`);
-        }
-      },
+    ipcMain.handle(`${CHANNEL_PREFIX}check-provider`, (_event, providerId: string) => checkProvider(providerId));
+    ipcMain.handle(`${CHANNEL_PREFIX}prepare-workspace`, (_event, clusterId: string, providerId: string) =>
+      prepareProviderWorkspace(app.getPath("userData"), clusterId, providerId),
     );
-
-    ipcMain.handle(`${CHANNEL_PREFIX}reveal-path`, async (_event, clusterId: string) => {
-      return revealProviderWorkspace(app.getPath("userData"), clusterId, "opencode", shell.openPath);
-    });
-
-    ipcMain.handle(`${CHANNEL_PREFIX}reset-harness`, async (_event, clusterId: string) => {
+    ipcMain.handle(
+      `${CHANNEL_PREFIX}read-provider-file`,
+      (_event, clusterId: string, providerId: string, relativePath: string) =>
+        readProviderFile(app.getPath("userData"), clusterId, providerId, relativePath),
+    );
+    ipcMain.handle(
+      `${CHANNEL_PREFIX}write-provider-file`,
+      (_event, clusterId: string, providerId: string, relativePath: string, content: string) =>
+        writeProviderFile(app.getPath("userData"), clusterId, providerId, relativePath, content),
+    );
+    ipcMain.handle(`${CHANNEL_PREFIX}reveal-workspace`, (_event, clusterId: string, providerId: string) =>
+      revealProviderWorkspace(app.getPath("userData"), clusterId, providerId, shell.openPath),
+    );
+    ipcMain.handle(`${CHANNEL_PREFIX}reset-provider`, (_event, clusterId: string, providerId: string) => {
       try {
-        resetProvider(app.getPath("userData"), clusterId, "opencode");
+        resetProvider(app.getPath("userData"), clusterId, providerId);
         return { ok: true };
       } catch (err: any) {
         return { ok: false, error: err?.message ?? String(err) };
