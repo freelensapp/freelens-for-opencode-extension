@@ -1,6 +1,6 @@
 {
   "name": "@freelensapp/opencode-extension",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Freelens extension: one-click opencode agent session per cluster",
   "repository": {
     "type": "git",
