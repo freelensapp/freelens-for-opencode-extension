@@ -43,10 +43,10 @@ export function prepareOpenCodeHarness(
   scaffoldDir: string = resolveScaffoldDir(),
 ): PrepareHarnessResult {
   const workdir = computeProviderWorkdir(userData, clusterId, "opencode");
-  // Legacy workdirs sanitized IDs without a digest.
+  // Legacy workdirs sanitized IDs without a digest; unsafe IDs could collide.
   const legacyWorkdir = path.join(userData, "opencode-sessions", clusterId.replace(/[^a-zA-Z0-9-_]/g, "_"));
 
-  if (existsSync(legacyWorkdir) && !existsSync(workdir)) {
+  if (/^[a-zA-Z0-9-_]+$/.test(clusterId) && existsSync(legacyWorkdir) && !existsSync(workdir)) {
     mkdirSync(path.dirname(workdir), { recursive: true });
     renameSync(legacyWorkdir, workdir);
   }

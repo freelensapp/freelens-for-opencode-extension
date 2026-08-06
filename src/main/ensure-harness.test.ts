@@ -126,8 +126,8 @@ describe("ensureHarness after resetHarness (no-clobber re-seed)", () => {
 
 describe("prepareOpenCodeHarness", () => {
   it("moves a legacy workspace into the provider workspace", () => {
-    const clusterId = "legacy/cluster";
-    const legacyWorkdir = path.join(workdir, "opencode-sessions", "legacy_cluster");
+    const clusterId = "legacy-cluster";
+    const legacyWorkdir = path.join(workdir, "opencode-sessions", clusterId);
     const targetWorkdir = computeProviderWorkdir(workdir, clusterId, "opencode");
     mkdirSync(path.join(legacyWorkdir, ".opencode"), { recursive: true });
     writeFileSync(path.join(legacyWorkdir, "AGENTS.md"), "# legacy\n", "utf8");
@@ -142,8 +142,8 @@ describe("prepareOpenCodeHarness", () => {
   });
 
   it("preserves an existing provider workspace without overwriting the legacy workspace", () => {
-    const clusterId = "legacy/cluster";
-    const legacyWorkdir = path.join(workdir, "opencode-sessions", "legacy_cluster");
+    const clusterId = "legacy-cluster";
+    const legacyWorkdir = path.join(workdir, "opencode-sessions", clusterId);
     const targetWorkdir = computeProviderWorkdir(workdir, clusterId, "opencode");
     for (const [dir, contents] of [
       [legacyWorkdir, "# legacy\n"],
@@ -158,6 +158,20 @@ describe("prepareOpenCodeHarness", () => {
 
     expect(result).toEqual({ workdir: targetWorkdir, seeded: false });
     expect(readFileSync(path.join(targetWorkdir, "AGENTS.md"), "utf8")).toBe("# provider\n");
+    expect(readFileSync(path.join(legacyWorkdir, "AGENTS.md"), "utf8")).toBe("# legacy\n");
+  });
+
+  it("skips a legacy workspace with a lossy unsafe cluster ID", () => {
+    const clusterId = "a:b";
+    const legacyWorkdir = path.join(workdir, "opencode-sessions", "a_b");
+    const targetWorkdir = computeProviderWorkdir(workdir, clusterId, "opencode");
+    mkdirSync(path.join(legacyWorkdir, ".opencode"), { recursive: true });
+    writeFileSync(path.join(legacyWorkdir, "AGENTS.md"), "# legacy\n", "utf8");
+    writeFileSync(path.join(legacyWorkdir, ".opencode", "opencode.json"), "{}\n", "utf8");
+
+    prepareOpenCodeHarness(workdir, clusterId, SCAFFOLD);
+
+    expect(readFileSync(path.join(targetWorkdir, "AGENTS.md"), "utf8")).not.toBe("# legacy\n");
     expect(readFileSync(path.join(legacyWorkdir, "AGENTS.md"), "utf8")).toBe("# legacy\n");
   });
 });
