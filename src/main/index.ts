@@ -2,7 +2,7 @@ import { Main } from "@freelensapp/extensions";
 import { app, ipcMain } from "electron";
 import { checkProvider } from "./check-provider";
 import { ensureHarness, resetHarness } from "./ensure-harness";
-import { computeWorkdir } from "./get-agent-workdir";
+import { computeProviderWorkdir } from "./get-provider-workdir";
 import { assertSessionsWorkdir, safeRead, safeWrite } from "./harness-file";
 import { revealPath } from "./reveal-path";
 
@@ -28,7 +28,7 @@ export default class OpencodeMainExtension extends Main.LensExtension {
     // returns the workdir too, so the renderer needs only this handler.
     ipcMain.handle(`${CHANNEL_PREFIX}prepare-harness`, async (_event, clusterId: string) => {
       try {
-        const workdir = computeWorkdir(app.getPath("userData"), clusterId);
+        const workdir = computeProviderWorkdir(app.getPath("userData"), clusterId, "opencode");
         return ensureHarness(workdir);
       } catch (err: any) {
         throw new Error(`Could not prepare harness: ${err?.message ?? err}`);

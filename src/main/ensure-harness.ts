@@ -1,6 +1,5 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
-import { ensureWorkdir } from "./get-agent-workdir";
 import { resolveScaffoldDir } from "./scaffold-source";
 
 export interface PrepareHarnessResult {
@@ -14,7 +13,7 @@ export interface PrepareHarnessResult {
 // (e.g. a user-edited AGENTS.md left behind by resetHarness) is skipped on
 // re-seed. The fast path (.opencode/ present → seeded:false) stays.
 export function ensureHarness(workdir: string, scaffoldDir: string = resolveScaffoldDir()): PrepareHarnessResult {
-  ensureWorkdir(workdir);
+  mkdirSync(workdir, { recursive: true });
   const opencodeDir = path.join(workdir, ".opencode");
   if (existsSync(opencodeDir)) {
     return { workdir, seeded: false };

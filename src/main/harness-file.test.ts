@@ -9,13 +9,13 @@ let workdir: string;
 
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), "harness-root-"));
-  mkdirSync(path.join(root, "opencode-sessions"), { recursive: true });
+  mkdirSync(path.join(root, "ai-cli-sessions"), { recursive: true });
   workdir =
-    mkdirSync(path.join(root, "opencode-sessions", "cluster-1"), { recursive: true }) ??
-    path.join(root, "opencode-sessions", "cluster-1");
+    mkdirSync(path.join(root, "ai-cli-sessions", "cluster-1"), { recursive: true }) ??
+    path.join(root, "ai-cli-sessions", "cluster-1");
   // mkdirSync with recursive returns the first dir created; if it already
   // existed it returns undefined — normalize to the target path.
-  workdir = path.join(root, "opencode-sessions", "cluster-1");
+  workdir = path.join(root, "ai-cli-sessions", "cluster-1");
   // ensure it actually exists (realpathSync below requires it)
   mkdirSync(workdir, { recursive: true });
 });
@@ -55,7 +55,7 @@ describe("safeResolve", () => {
 });
 
 describe("assertSessionsWorkdir", () => {
-  it("returns the realpath when workdir is inside <userData>/opencode-sessions/", () => {
+  it("returns the realpath when workdir is inside <userData>/ai-cli-sessions/", () => {
     const real = assertSessionsWorkdir(root, workdir);
     expect(realpathSync(workdir)).toBe(real);
   });

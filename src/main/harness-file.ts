@@ -21,11 +21,11 @@ export function safeResolve(workdir: string, relPath: string): string {
 }
 
 // Validates that a renderer-supplied workdir is actually under
-// <userData>/opencode-sessions/. Used by the read/write IPC handlers so a
+// <userData>/ai-cli-sessions/. Used by the read/write IPC handlers so a
 // compromised renderer cannot read/write arbitrary paths.
 export function assertSessionsWorkdir(userData: string, workdir: string): string {
   const realUd = realpathSync(userData);
-  const sessionsRoot = path.join(realUd, "opencode-sessions");
+  const sessionsRoot = path.join(realUd, "ai-cli-sessions");
   const realWd = realpathSync(workdir);
   const sep = path.sep;
   const inside =

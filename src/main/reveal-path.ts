@@ -2,7 +2,7 @@ import { realpathSync } from "node:fs";
 import path from "node:path";
 import { shell } from "electron";
 
-// Validates absPath is inside <userData>/opencode-sessions/, then delegates to
+// Validates absPath is inside <userData>/ai-cli-sessions/, then delegates to
 // shell.openPath. openPath returns "" on success, an error string otherwise.
 export async function revealPath(
   userData: string,
@@ -10,7 +10,7 @@ export async function revealPath(
   openPath: (p: string) => Promise<string> = shell.openPath,
 ): Promise<{ ok: boolean; error?: string }> {
   const realUd = realpathSync(userData);
-  const sessionsRoot = path.join(realUd, "opencode-sessions");
+  const sessionsRoot = path.join(realUd, "ai-cli-sessions");
   let realAbs: string;
   try {
     realAbs = realpathSync(absPath);
