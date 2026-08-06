@@ -6,10 +6,12 @@ const mocks = vi.hoisted(() => ({
   handle: vi.fn(),
   openPath: vi.fn(),
   prepareProviderWorkspace: vi.fn(),
+  readExtensionSettings: vi.fn(() => ({ probeTimeoutMs: 15_000 })),
   readProviderFile: vi.fn(),
   removeHandler: vi.fn(),
   resetProvider: vi.fn(),
   revealProviderWorkspace: vi.fn(),
+  writeExtensionSettings: vi.fn((_userData: string, settings: unknown) => settings),
   writeProviderFile: vi.fn(),
 }));
 
@@ -24,6 +26,10 @@ vi.mock("electron", () => ({
 }));
 
 vi.mock("./check-provider", () => ({ checkProvider: mocks.checkProvider }));
+vi.mock("./extension-settings-store", () => ({
+  readExtensionSettings: mocks.readExtensionSettings,
+  writeExtensionSettings: mocks.writeExtensionSettings,
+}));
 vi.mock("./provider-files", () => ({
   prepareProviderWorkspace: mocks.prepareProviderWorkspace,
   readProviderFile: mocks.readProviderFile,
@@ -61,6 +67,8 @@ describe("AiCliMainExtension", () => {
       "ai-cli-extension:write-provider-file",
       "ai-cli-extension:reveal-workspace",
       "ai-cli-extension:reset-provider",
+      "ai-cli-extension:get-settings",
+      "ai-cli-extension:set-settings",
     ];
     expect(mocks.removeHandler.mock.calls.map(([channel]) => channel)).toEqual([...channels, ...channels]);
     expect(mocks.handle.mock.calls.map(([channel]) => channel)).toEqual([...channels, ...channels]);
@@ -71,8 +79,12 @@ describe("AiCliMainExtension", () => {
     await getHandler("ai-cli-extension:write-provider-file")({}, "cluster-1", "claude", "CLAUDE.md", "rules");
     await getHandler("ai-cli-extension:reveal-workspace")({}, "cluster-1", "claude");
     await getHandler("ai-cli-extension:reset-provider")({}, "cluster-1", "claude");
+    await getHandler("ai-cli-extension:get-settings")({});
+    await getHandler("ai-cli-extension:set-settings")({}, { probeTimeoutMs: 30_000 });
 
-    expect(mocks.checkProvider).toHaveBeenCalledWith("claude");
+    expect(mocks.checkProvider).toHaveBeenCalledWith("claude", undefined, 15_000);
+    expect(mocks.readExtensionSettings).toHaveBeenCalledWith("/user-data");
+    expect(mocks.writeExtensionSettings).toHaveBeenCalledWith("/user-data", { probeTimeoutMs: 30_000 });
     expect(mocks.prepareProviderWorkspace).toHaveBeenCalledWith("/user-data", "cluster-1", "claude");
     expect(mocks.readProviderFile).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", "CLAUDE.md");
     expect(mocks.writeProviderFile).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", "CLAUDE.md", "rules");
