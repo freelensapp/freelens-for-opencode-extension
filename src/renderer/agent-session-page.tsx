@@ -117,7 +117,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
     if (state.status !== "ready" || !state.workdir) return;
     setLaunching(true);
     const tabId = Renderer.Component.createTerminalTab({ title: "Agent Session" }).id;
-    const launchCmd = getLaunchCommand(state.workdir, process.platform);
+    const launchCmd = getLaunchCommand(state.workdir, "opencode", process.platform);
 
     let sent = false;
     let timeoutId: ReturnType<typeof setTimeout>;

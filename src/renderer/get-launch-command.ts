@@ -1,4 +1,8 @@
-type LaunchCommandBuilder = (workdir: string) => string;
+import { getAiCliProvider } from "../common/ai-cli-providers";
+
+import type { AiCliProvider } from "../common/ai-cli-providers";
+
+type LaunchCommandBuilder = (workdir: string, command: string) => string;
 
 function quoteWindowsDoubleQuotedLiteral(value: string): string {
   return value.replace(/[`"$]/g, "`$&");
@@ -8,12 +12,12 @@ function quotePosixDoubleQuotedLiteral(value: string): string {
   return value.replace(/["\\$`]/g, "\\$&");
 }
 
-function getWindowsLaunchCommand(workdir: string): string {
-  return `Set-Location -LiteralPath "${quoteWindowsDoubleQuotedLiteral(workdir)}" -ErrorAction Stop ; $fullPath = $env:Path ; Remove-Item Env:Path -ErrorAction SilentlyContinue ; [Environment]::SetEnvironmentVariable("Path", $fullPath, "Process") ; opencode`;
+function getWindowsLaunchCommand(workdir: string, command: string): string {
+  return `Set-Location -LiteralPath "${quoteWindowsDoubleQuotedLiteral(workdir)}" -ErrorAction Stop ; $fullPath = $env:Path ; Remove-Item Env:Path -ErrorAction SilentlyContinue ; [Environment]::SetEnvironmentVariable("Path", $fullPath, "Process") ; ${command}`;
 }
 
-function getPosixLaunchCommand(workdir: string): string {
-  return `cd "${quotePosixDoubleQuotedLiteral(workdir)}" && KUBECONFIG="$KUBECONFIG" PATH="$PATH" opencode`;
+function getPosixLaunchCommand(workdir: string, command: string): string {
+  return `cd "${quotePosixDoubleQuotedLiteral(workdir)}" && KUBECONFIG="$KUBECONFIG" PATH="$PATH" ${command}`;
 }
 
 const launchCommandBuilders: Record<NodeJS.Platform, LaunchCommandBuilder> = {
@@ -30,6 +34,12 @@ const launchCommandBuilders: Record<NodeJS.Platform, LaunchCommandBuilder> = {
   win32: getWindowsLaunchCommand,
 };
 
-export function getLaunchCommand(workdir: string, platform: NodeJS.Platform): string {
-  return launchCommandBuilders[platform](workdir);
+export function buildLaunchCommand(workdir: string, provider: AiCliProvider, platform: NodeJS.Platform): string {
+  const command = [provider.executable, ...provider.launchArgs].join(" ");
+
+  return launchCommandBuilders[platform](workdir, command);
+}
+
+export function getLaunchCommand(workdir: string, providerId: string, platform: NodeJS.Platform): string {
+  return buildLaunchCommand(workdir, getAiCliProvider(providerId), platform);
 }
