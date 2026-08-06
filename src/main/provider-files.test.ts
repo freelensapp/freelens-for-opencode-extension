@@ -69,6 +69,23 @@ describe("provider workspaces", () => {
     expect(existsSync(path.join(workdir, ".opencode", "opencode.json"))).toBe(true);
   });
 
+  it("migrates a collision-safe legacy OpenCode workspace", () => {
+    const userData = createRoot();
+    const clusterId = "legacy-cluster";
+    const legacyWorkdir = path.join(userData, "opencode-sessions", clusterId);
+    const targetWorkdir = computeProviderWorkdir(userData, clusterId, "opencode");
+    mkdirSync(path.join(legacyWorkdir, ".opencode"), { recursive: true });
+    writeFileSync(path.join(legacyWorkdir, "AGENTS.md"), "# legacy\n", "utf8");
+    writeFileSync(path.join(legacyWorkdir, ".opencode", "opencode.json"), "{}\n", "utf8");
+
+    expect(prepareProviderWorkspace(userData, clusterId, "opencode")).toEqual({
+      workdir: targetWorkdir,
+      seeded: false,
+    });
+    expect(readFileSync(path.join(targetWorkdir, "AGENTS.md"), "utf8")).toBe("# legacy\n");
+    expect(existsSync(legacyWorkdir)).toBe(false);
+  });
+
   it.each([
     "../escape",
     "dir/../file",

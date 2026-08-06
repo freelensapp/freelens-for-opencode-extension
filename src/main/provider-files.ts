@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -68,6 +69,31 @@ function getWorkdir(userData: string, clusterId: string, providerId: string): st
   return realWorkdir;
 }
 
+function migrateLegacyOpenCodeWorkspace(userData: string, clusterId: string, providerId: string): void {
+  if (providerId !== "opencode" || !/^[a-zA-Z0-9-_]+$/.test(clusterId)) return;
+
+  const { userData: realUserData, sessionsRoot } = getRealSessionsRoot(userData, true);
+  const workdir = computeProviderWorkdir(realUserData, clusterId, providerId);
+  const legacyWorkdir = path.join(realUserData, "opencode-sessions", clusterId);
+
+  if (existsSync(workdir)) return;
+
+  try {
+    if (!lstatSync(legacyWorkdir).isDirectory()) return;
+  } catch (error: any) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+
+  const realLegacyWorkdir = realpathSync(legacyWorkdir);
+  if (!isInside(realUserData, realLegacyWorkdir)) return;
+
+  mkdirSync(path.dirname(workdir), { recursive: true });
+  if (!isInside(sessionsRoot, realpathSync(path.dirname(workdir)))) throw new Error("Forbidden path");
+
+  renameSync(realLegacyWorkdir, workdir);
+}
+
 function nearestExistingParent(target: string): string {
   let current = path.dirname(target);
 
@@ -119,6 +145,7 @@ export function prepareProviderWorkspace(
   explicitScaffoldsRoot?: string,
 ): { workdir: string; seeded: boolean } {
   const provider = getAiCliProvider(providerId);
+  migrateLegacyOpenCodeWorkspace(userData, clusterId, provider.id);
   const workdir = getWorkdir(userData, clusterId, provider.id);
   const scaffold = resolveProviderScaffold(provider.id, explicitScaffoldsRoot);
   let seeded = false;

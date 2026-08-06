@@ -6,6 +6,7 @@ const packageMetadata = JSON.parse(readFileSync(new URL("../package.json", impor
   description: string;
   repository: { url: string };
   keywords: string[];
+  scripts: { "build:production": string };
 };
 
 describe("package metadata", () => {
@@ -29,5 +30,11 @@ describe("package metadata", () => {
         "ai-cli",
       ],
     });
+  });
+
+  it("uses a cross-platform production build script", () => {
+    expect(packageMetadata.scripts["build:production"]).toBe(
+      "cross-env VITE_PRESERVE_MODULES=false electron-vite build",
+    );
   });
 });
