@@ -1,6 +1,6 @@
 import { Main } from "@freelensapp/extensions";
 import { app, ipcMain } from "electron";
-import { checkOpencodeInstalled } from "./check-opencode-installed";
+import { checkProvider } from "./check-provider";
 import { ensureHarness, resetHarness } from "./ensure-harness";
 import { computeWorkdir } from "./get-agent-workdir";
 import { assertSessionsWorkdir, safeRead, safeWrite } from "./harness-file";
@@ -20,13 +20,7 @@ const CHANNEL_PREFIX = "opencode-extension:";
 
 export default class OpencodeMainExtension extends Main.LensExtension {
   async onActivate() {
-    ipcMain.handle(`${CHANNEL_PREFIX}check-opencode-installed`, async () => {
-      try {
-        return await checkOpencodeInstalled();
-      } catch (err: any) {
-        return { installed: false, error: err?.message ?? String(err) };
-      }
-    });
+    ipcMain.handle("ai-cli-extension:check-provider", (_event, providerId: string) => checkProvider(providerId));
 
     // Returns { workdir, seeded }. Computes workdir, mkdir -p, seeds scaffold
     // from out/main/scaffold/ on first open. Replaces get-agent-workdir: it
