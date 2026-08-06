@@ -74,6 +74,22 @@ describe("provider selection", () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
+  it("drops an in-flight probe result when selection changes", async () => {
+    let isCurrent = true;
+    let resolveCheck: (result: { status: "ready"; version: string }) => void;
+    const check = new Promise<{ status: "ready"; version: string }>((resolve) => {
+      resolveCheck = resolve;
+    });
+    const invoke = vi.fn().mockReturnValue(check);
+    const result = loadProvider("cluster-a", "opencode", invoke, () => isCurrent);
+
+    isCurrent = false;
+    resolveCheck!({ status: "ready", version: "1.2.3" });
+
+    await expect(result).resolves.toBeUndefined();
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
   it("drops result when selection changes after preparation", async () => {
     const isCurrent = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
     const invoke = vi

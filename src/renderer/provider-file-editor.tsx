@@ -4,6 +4,7 @@ import { observer } from "mobx-react";
 import * as monacoEditor from "monaco-editor";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import { useEffect, useRef, useState } from "react";
+import { createSaveLifecycle } from "./save-lifecycle";
 import { sectionThemeStore } from "./section-theme";
 
 import type { EditorDefinition } from "../common/ai-cli-providers";
@@ -37,10 +38,15 @@ export const ProviderFileEditor = observer(function ProviderFileEditor({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string>();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveLifecycle = useRef(createSaveLifecycle()).current;
+  const currentEditor = useRef({ clusterId, providerId, path: editor.path });
+
+  currentEditor.current = { clusterId, providerId, path: editor.path };
 
   useEffect(() => {
     let cancelled = false;
 
+    saveLifecycle.invalidate();
     setLoaded(false);
     setStatus("idle");
     setError(undefined);
@@ -61,11 +67,18 @@ export const ProviderFileEditor = observer(function ProviderFileEditor({
     return () => {
       cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      saveLifecycle.invalidate();
     };
   }, [clusterId, providerId, editor.path]);
 
   function onChange(value: string | undefined) {
     const next = value ?? "";
+    const isCurrentSave = saveLifecycle.begin();
+    const isCurrentEditor = () =>
+      isCurrentSave() &&
+      currentEditor.current.clusterId === clusterId &&
+      currentEditor.current.providerId === providerId &&
+      currentEditor.current.path === editor.path;
 
     setContent(next);
     setStatus("saving");
@@ -74,11 +87,15 @@ export const ProviderFileEditor = observer(function ProviderFileEditor({
       void ipcRenderer
         .invoke(`${CHANNEL_PREFIX}write-provider-file`, clusterId, providerId, editor.path, next)
         .then(() => {
+          if (!isCurrentEditor()) return;
           setStatus("saved");
           setError(undefined);
-          setTimeout(() => setStatus((current) => (current === "saved" ? "idle" : current)), 1000);
+          saveLifecycle.setBadgeTimer(() => {
+            if (isCurrentEditor()) setStatus((current) => (current === "saved" ? "idle" : current));
+          });
         })
         .catch((err: unknown) => {
+          if (!isCurrentEditor()) return;
           setStatus("error");
           setError(err instanceof Error ? err.message : String(err));
         });

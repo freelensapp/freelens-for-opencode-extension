@@ -96,7 +96,7 @@ export default defineConfig({
     oxc: { decorator: { legacy: true, emitDecoratorMetadata: true } },
     // monaco-editor ships ESM workers that Vite's ?worker handles natively.
     // rollupOptions.input is not needed; the renderer graph pulls workers via
-    // `?worker` imports in agents-md-editor.tsx. optimizeDeps kept permissive
+    // `?worker` imports in provider-file-editor.tsx. optimizeDeps kept permissive
     // so Vite pre-bundles monaco-editor's ESM correctly under dev.
     optimizeDeps: {
       include: ["monaco-editor/esm/vs/editor/editor.worker", "monaco-editor"],

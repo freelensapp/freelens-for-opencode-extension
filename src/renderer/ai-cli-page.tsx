@@ -56,12 +56,14 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
   const generation = useRef(0);
   const providerId = selection.clusterId === clusterId ? selection.providerId : undefined;
   const provider = providerId ? getAiCliProvider(providerId) : undefined;
+  const hasCurrentSelection = selection.clusterId === clusterId;
   const currentRequest = useRef({ clusterId, providerId });
 
   currentRequest.current = { clusterId, providerId };
 
   useEffect(() => {
     generation.current++;
+    setState({ status: "idle" });
     setSelection({ clusterId, providerId: clusterId ? loadSelectedProvider(clusterId) : undefined });
     setRetry(0);
   }, [clusterId]);
@@ -93,8 +95,9 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
   }, [clusterId, providerId, retry]);
 
   function selectProvider(nextProviderId: AiCliProviderId) {
-    if (!clusterId) return;
+    if (!clusterId || (state.status === "loading" && nextProviderId === providerId)) return;
     generation.current++;
+    setState({ status: "idle" });
     saveSelectedProvider(clusterId, nextProviderId);
     setSelection({ clusterId, providerId: nextProviderId });
     setRetry(0);
@@ -141,7 +144,7 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
   async function reset() {
     if (!clusterId || !provider || state.status !== "ready") return;
     const ok = await Renderer.Component.ConfirmDialog.confirm({
-      message: "Reset managed paths? This preserves instructions and unrelated files.",
+      message: `Reset ${provider.name} managed paths (${provider.resetPaths.join(", ")})? This preserves instructions and unrelated files.`,
       labelOk: "Reset",
       labelCancel: "Cancel",
     });
@@ -163,17 +166,17 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
     <div style={{ padding: "var(--padding, 16px)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Renderer.Component.SubTitle title={provider ? `${provider.name} Session` : "Freelens AI CLI"}>
-          {state.status === "ready" && (
+          {hasCurrentSelection && state.status === "ready" && (
             <>
               <Renderer.Component.StatusBrick className="running" /> {provider?.name} v{state.version}
             </>
           )}
-          {state.status === "loading" && (
+          {hasCurrentSelection && state.status === "loading" && (
             <>
               <Renderer.Component.StatusBrick className="waiting" /> Checking {provider?.name}...
             </>
           )}
-          {(state.status === "missing" || state.status === "error") && (
+          {hasCurrentSelection && (state.status === "missing" || state.status === "error") && (
             <Renderer.Component.StatusBrick className="failed" />
           )}
         </Renderer.Component.SubTitle>
@@ -187,17 +190,20 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
             key={candidate.id}
             primary={candidate.id === providerId}
             outlined={candidate.id !== providerId}
-            disabled={!clusterId}
+            disabled={!clusterId || (state.status === "loading" && candidate.id === providerId)}
             onClick={() => selectProvider(candidate.id)}
           >
-            {candidate.name}
+            {candidate.id === providerId ? `Selected: ${candidate.name}` : `Select ${candidate.name}`}
           </Renderer.Component.Button>
         ))}
       </div>
-      <p>Launched CLIs use your cluster Kubernetes context and remain bound by its RBAC permissions.</p>
+      <p>
+        CLI permissions are convenience guardrails. Kubernetes RBAC and kubeconfig permissions remain the security
+        boundary.
+      </p>
 
       {!clusterId && <p>No active cluster. Open a cluster first.</p>}
-      {state.status === "missing" && provider && (
+      {hasCurrentSelection && state.status === "missing" && provider && (
         <div>
           <Renderer.Component.Icon material="error_outline" />
           <span>{provider.name} not found on PATH</span>
@@ -208,14 +214,14 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
           <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
         </div>
       )}
-      {state.status === "error" && (
+      {hasCurrentSelection && state.status === "error" && (
         <div>
           <Renderer.Component.Icon material="error_outline" />
           <span>{provider ? `${provider.name}: ${state.error}` : state.error}</span>
           <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
         </div>
       )}
-      {state.status === "ready" && provider && clusterId && (
+      {hasCurrentSelection && state.status === "ready" && provider && clusterId && (
         <>
           <div>
             Working directory: <code>{state.workdir}</code>
