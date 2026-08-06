@@ -3,7 +3,7 @@ import { makeAutoObservable } from "mobx";
 
 export type SectionTheme = "auto" | "dark" | "light";
 
-const STORAGE_KEY = "opencode-extension:section-theme";
+const STORAGE_KEY = "ai-cli-extension:section-theme";
 
 // Only Monaco's built-in themes are guaranteed to exist in the extension's own
 // Monaco instance. The host's custom `clouds-midnight` is registered against

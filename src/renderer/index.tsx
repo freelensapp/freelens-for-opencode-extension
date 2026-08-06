@@ -1,28 +1,28 @@
 import { Renderer } from "@freelensapp/extensions";
-import { AgentSessionPage } from "./agent-session-page";
+import { AiCliPage } from "./ai-cli-page";
 
 const {
   Component: { Icon },
 } = Renderer;
 
-function OpencodeIcon(props: Renderer.Component.IconProps) {
+function AiCliIcon(props: Renderer.Component.IconProps) {
   return <Icon {...props} material="terminal" />;
 }
 
-export default class OpencodeRendererExtension extends Renderer.LensExtension {
+export default class AiCliRendererExtension extends Renderer.LensExtension {
   clusterPages = [
     {
-      id: "agent-session",
-      components: { Page: () => <AgentSessionPage extension={this} /> },
+      id: "ai-cli",
+      components: { Page: () => <AiCliPage extension={this} /> },
     },
   ];
 
   clusterPageMenus = [
     {
-      id: "agent-session",
-      title: "OpenCode",
-      target: { pageId: "agent-session" },
-      components: { Icon: OpencodeIcon },
+      id: "ai-cli",
+      title: "Freelens AI CLI",
+      target: { pageId: "ai-cli" },
+      components: { Icon: AiCliIcon },
     },
   ];
 }

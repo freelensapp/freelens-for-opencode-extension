@@ -1,24 +1,24 @@
 import { Renderer } from "@freelensapp/extensions";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("./agent-session-page", () => ({
-  AgentSessionPage: () => null,
+vi.mock("./ai-cli-page", () => ({
+  AiCliPage: () => null,
 }));
 
-import OpencodeRendererExtension from "./index";
+import AiCliRendererExtension from "./index";
 
-describe("OpencodeRendererExtension sidebar registration", () => {
-  it("registers the OpenCode menu item with the terminal icon", () => {
-    const extension = new OpencodeRendererExtension({} as never);
+describe("AiCliRendererExtension sidebar registration", () => {
+  it("registers the Freelens AI CLI menu item with the terminal icon", () => {
+    const extension = new AiCliRendererExtension({} as never);
 
     expect(extension.clusterPageMenus).toHaveLength(1);
 
     const [menu] = extension.clusterPageMenus;
 
     expect(menu).toMatchObject({
-      id: "agent-session",
-      title: "OpenCode",
-      target: { pageId: "agent-session" },
+      id: "ai-cli",
+      title: "Freelens AI CLI",
+      target: { pageId: "ai-cli" },
     });
 
     const icon = menu.components.Icon({ className: "sidebar-icon" });

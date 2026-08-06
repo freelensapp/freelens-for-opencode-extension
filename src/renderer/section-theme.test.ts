@@ -41,7 +41,7 @@ describe("SectionThemeStore.monacoTheme", () => {
   });
 });
 
-const STORAGE_KEY = "opencode-extension:section-theme";
+const STORAGE_KEY = "ai-cli-extension:section-theme";
 
 // A minimal in-memory localStorage stand-in for the `node` test environment.
 function installFakeStorage(): Record<string, string> {
