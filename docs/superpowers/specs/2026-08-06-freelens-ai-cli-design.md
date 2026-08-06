@@ -20,7 +20,7 @@ Generalize the OpenCode-only extension into Freelens AI CLI, an extension that l
 - Runtime registration by third-party extensions.
 - User-defined executable or argument profiles.
 - Sharing files or configuration between provider workspaces.
-- Migrating existing `opencode-sessions` workspaces. There are no current users requiring migration.
+- Automatically migrating unsafe legacy `opencode-sessions` workspace IDs.
 - Implementing a custom Copilot permission engine.
 - Treating CLI permission prompts as a Kubernetes security boundary.
 
@@ -79,6 +79,8 @@ Each provider receives a separate persistent workspace:
 Provider switching never copies or shares manifests, instructions, settings, generated files, or agent state. Existing terminal sessions remain open when the page selector changes.
 
 Main process computes workspace paths from a bounded, sanitized cluster ID and a registry-validated provider ID. Renderer never supplies an executable, launch arguments, or authoritative absolute workspace path.
+
+A pre-existing OpenCode workspace migrates only when its legacy cluster ID is nonempty and filesystem-safe (`[a-zA-Z0-9-_]+`). Unsafe legacy IDs used lossy keys, so they cannot migrate automatically and remain untouched.
 
 ## Selection and Probe Flow
 
