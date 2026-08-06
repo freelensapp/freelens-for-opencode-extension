@@ -51,30 +51,32 @@ interface AgentSessionPageProps {
   extension: Renderer.LensExtension;
 }
 
-const THEME_OPTIONS: { value: SectionTheme; label: string; icon: string }[] = [
-  { value: "auto", label: "Auto", icon: "brightness_auto" },
-  { value: "dark", label: "Dark", icon: "dark_mode" },
-  { value: "light", label: "Light", icon: "light_mode" },
+const THEME_OPTIONS: { value: SectionTheme; label: string }[] = [
+  { value: "auto", label: "Auto" },
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
 ];
 
-const SectionThemeToggle = observer(function SectionThemeToggle() {
+// ponytail: the theme picker used to be three side-by-side Buttons crammed into
+// the header. Replaced with a single Select so it takes one control's worth of
+// width and reads as a chooser rather than three competing actions.
+const SectionThemeSelect = observer(function SectionThemeSelect() {
   return (
-    <div style={{ display: "flex", gap: "4px" }}>
-      {THEME_OPTIONS.map((opt) => {
-        const active = sectionThemeStore.pref === opt.value;
-        return (
-          <Renderer.Component.Button
-            key={opt.value}
-            outlined={!active}
-            primary={active}
-            tooltip={`${opt.label} theme`}
-            onClick={() => sectionThemeStore.setPref(opt.value)}
-          >
-            <Renderer.Component.Icon material={opt.icon} small />
-            {opt.label}
-          </Renderer.Component.Button>
-        );
-      })}
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span style={{ fontSize: "0.85em", opacity: 0.8 }}>Theme</span>
+      <div style={{ width: "140px" }}>
+        <Renderer.Component.Select
+          id="section-theme-select"
+          themeName="lens"
+          options={THEME_OPTIONS}
+          value={sectionThemeStore.pref}
+          isClearable={false}
+          menuPlacement="auto"
+          onChange={(opt) => {
+            if (opt) sectionThemeStore.setPref(opt.value);
+          }}
+        />
+      </div>
     </div>
   );
 });
@@ -167,79 +169,97 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
     // ponytail: plain padded div, NOT Renderer.Component.SettingLayout — that
     // renders a full settings-page shell with its own back-button nav that
     // replaces the cluster view (sidebar disappears). We only want edge padding.
-    <div style={{ padding: "var(--padding, 16px)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Renderer.Component.SubTitle title="Agent Session">
-          {state.status === "ready" && (
-            <>
-              <Renderer.Component.StatusBrick className="running" /> opencode v{state.version}
-            </>
-          )}
-          {state.status === "loading" && (
-            <>
-              <Renderer.Component.StatusBrick className="waiting" /> Checking for opencode…
-            </>
-          )}
-          {(state.status === "missing" || state.status === "error") && (
-            <Renderer.Component.StatusBrick className="failed" />
-          )}
-        </Renderer.Component.SubTitle>
-        <SectionThemeToggle />
-      </div>
-
-      {state.status === "missing" && (
-        <div>
-          <Renderer.Component.Icon material="error_outline" />
-          <span>opencode not found on PATH</span>
-          <Renderer.Component.Button plain href="https://opencode.ai/docs/" target="_blank">
-            opencode docs
-          </Renderer.Component.Button>
-          {state.error && <span>{state.error}</span>}
-          <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
+    //
+    // The cluster page host area does not scroll for us, so the outer div owns
+    // the scroll: height 100% + overflowY auto keeps tall content (the two
+    // editors) reachable instead of clipped. box-sizing keeps the padding
+    // inside the 100% height.
+    <div
+      style={{
+        height: "100%",
+        overflowY: "auto",
+        boxSizing: "border-box",
+        padding: "var(--padding, 16px)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <Renderer.Component.SubTitle title="Agent Session">
+            {state.status === "ready" && (
+              <>
+                <Renderer.Component.StatusBrick className="running" /> opencode v{state.version}
+              </>
+            )}
+            {state.status === "loading" && (
+              <>
+                <Renderer.Component.StatusBrick className="waiting" /> Checking for opencode…
+              </>
+            )}
+            {(state.status === "missing" || state.status === "error") && (
+              <Renderer.Component.StatusBrick className="failed" />
+            )}
+          </Renderer.Component.SubTitle>
+          <SectionThemeSelect />
         </div>
-      )}
 
-      {state.status === "error" && (
-        <div>
-          <Renderer.Component.Icon material="error_outline" />
-          <span>{state.error}</span>
-          <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
-        </div>
-      )}
-
-      {state.status === "ready" && state.workdir && (
-        <>
-          <div>
-            Working directory: <code>{state.workdir}</code>
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
-            <Renderer.Component.Button
-              primary
-              label="Open agent session"
-              onClick={launch}
-              disabled={!clusterId || launching}
-              waiting={launching}
-            />
-            <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
-            <Renderer.Component.Button
-              outlined
-              tooltip="Delete .opencode/ to reseed scaffold"
-              onClick={() => void reset()}
-            >
-              <Renderer.Component.Icon material="restart_alt" small />
-              Reset
+        {state.status === "missing" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <Renderer.Component.Icon material="error_outline" />
+            <span>opencode not found on PATH</span>
+            <Renderer.Component.Button plain href="https://opencode.ai/docs/" target="_blank">
+              opencode docs
             </Renderer.Component.Button>
+            {state.error && <span>{state.error}</span>}
+            <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
           </div>
-          <Renderer.Component.Gutter />
-          <HarnessFileEditor workdir={state.workdir} relPath="AGENTS.md" title="AGENTS.md" language="markdown" />
-          <HarnessFileEditor
-            workdir={state.workdir}
-            relPath=".opencode/opencode.json"
-            title="Permissions (.opencode/opencode.json)"
-            language="json"
-          />
-        </>
-      )}
+        )}
+
+        {state.status === "error" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <Renderer.Component.Icon material="error_outline" />
+            <span>{state.error}</span>
+            <Renderer.Component.Button outlined label="Retry" onClick={() => void refresh()} />
+          </div>
+        )}
+
+        {state.status === "ready" && state.workdir && (
+          <>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <Renderer.Component.Button
+                primary
+                label="Open agent session"
+                onClick={launch}
+                disabled={!clusterId || launching}
+                waiting={launching}
+              />
+              <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
+              <Renderer.Component.Button
+                outlined
+                tooltip="Delete .opencode/ to reseed scaffold"
+                onClick={() => void reset()}
+              >
+                <Renderer.Component.Icon material="restart_alt" small />
+                Reset
+              </Renderer.Component.Button>
+            </div>
+            <HarnessFileEditor workdir={state.workdir} relPath="AGENTS.md" title="AGENTS.md" language="markdown" />
+            <HarnessFileEditor
+              workdir={state.workdir}
+              relPath=".opencode/opencode.json"
+              title="Permissions (.opencode/opencode.json)"
+              language="json"
+            />
+          </>
+        )}
+      </div>
 
       {/* ponytail: no test for this page — it's a thin shell over public APIs
           (createTerminalTab + sendCommand + ipcRenderer.invoke + Monaco + host
