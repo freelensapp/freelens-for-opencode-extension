@@ -5,7 +5,7 @@ import type { ChildProcess } from "node:child_process";
 type Spawn = typeof realSpawn;
 
 const VERSION_RE = /\d+\.\d+\.\d+/;
-const WINDOWS_COMMAND_NOT_FOUND_RE = /not recognized|not found|could not find/i;
+const WINDOWS_COMMAND_NOT_FOUND_RE = /not recognized as (?:an? )?(?:internal or external )?command/i;
 
 export function checkProvider(
   providerId: string,

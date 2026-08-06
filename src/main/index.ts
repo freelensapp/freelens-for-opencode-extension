@@ -20,6 +20,7 @@ const CHANNEL_PREFIX = "opencode-extension:";
 
 export default class OpencodeMainExtension extends Main.LensExtension {
   async onActivate() {
+    ipcMain.removeHandler("ai-cli-extension:check-provider");
     ipcMain.handle("ai-cli-extension:check-provider", (_event, providerId: string) => checkProvider(providerId));
 
     // Returns { workdir, seeded }. Computes workdir, mkdir -p, seeds scaffold

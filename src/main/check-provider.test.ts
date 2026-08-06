@@ -93,6 +93,15 @@ describe("checkProvider", () => {
     });
   });
 
+  it("reports Windows configuration errors containing not found", async () => {
+    const spawn = vi.fn(() => makeFakeChild({ stderr: "configuration file not found", exitCode: 1 }).child);
+
+    await expect(checkProvider("opencode", spawn as Spawn, 5_000, "win32")).resolves.toEqual({
+      status: "error",
+      error: "OpenCode --version exited with code 1: configuration file not found",
+    });
+  });
+
   it("reports nonzero exits with stderr", async () => {
     const spawn = vi.fn(() => makeFakeChild({ stderr: "broken install\n", exitCode: 7 }).child);
 
