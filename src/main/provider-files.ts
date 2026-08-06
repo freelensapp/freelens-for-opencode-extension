@@ -38,23 +38,32 @@ function assertDeclaredPath(providerId: string, relPath: string): void {
   }
 }
 
+function getRealSessionsRoot(userData: string, create = false): { userData: string; sessionsRoot: string } {
+  const realUserData = realpathSync(userData);
+  const sessionsPath = path.join(realUserData, "ai-cli-sessions");
+  if (create) mkdirSync(sessionsPath, { recursive: true });
+  const realSessionsRoot = realpathSync(sessionsPath);
+
+  if (!isInside(realUserData, realSessionsRoot)) throw new Error("Forbidden path");
+
+  return { userData: realUserData, sessionsRoot: realSessionsRoot };
+}
+
 function getWorkdir(userData: string, clusterId: string, providerId: string): string {
-  const sessionsRoot = path.join(userData, "ai-cli-sessions");
-  mkdirSync(sessionsRoot, { recursive: true });
-  const workdir = computeProviderWorkdir(userData, clusterId, providerId);
-  const realSessionsRoot = realpathSync(sessionsRoot);
+  const { userData: realUserData, sessionsRoot } = getRealSessionsRoot(userData, true);
+  const workdir = computeProviderWorkdir(realUserData, clusterId, providerId);
   let realParent: string;
   try {
     realParent = realpathSync(nearestExistingParent(workdir));
   } catch {
     throw new Error("Forbidden path");
   }
-  if (!isInside(realSessionsRoot, realParent)) throw new Error("Forbidden path");
+  if (!isInside(sessionsRoot, realParent)) throw new Error("Forbidden path");
 
   mkdirSync(workdir, { recursive: true });
   const realWorkdir = realpathSync(workdir);
 
-  if (!isInside(realSessionsRoot, realWorkdir)) throw new Error("Forbidden path");
+  if (!isInside(sessionsRoot, realWorkdir)) throw new Error("Forbidden path");
 
   return realWorkdir;
 }
@@ -182,8 +191,8 @@ export async function revealProviderWorkspace(
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     getAiCliProvider(providerId);
-    const sessionsRoot = realpathSync(path.join(userData, "ai-cli-sessions"));
-    const workdir = realpathSync(computeProviderWorkdir(userData, clusterId, providerId));
+    const { userData: realUserData, sessionsRoot } = getRealSessionsRoot(userData);
+    const workdir = realpathSync(computeProviderWorkdir(realUserData, clusterId, providerId));
     if (!isInside(sessionsRoot, workdir)) return { ok: false, error: "Forbidden path" };
 
     const result = await openPath(workdir);

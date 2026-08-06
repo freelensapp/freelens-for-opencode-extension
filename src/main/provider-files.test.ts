@@ -131,6 +131,39 @@ describe("provider workspaces", () => {
     expect(existsSync(path.join(outside, "opencode"))).toBe(false);
   });
 
+  it("rejects managed operations when sessions root is symlinked outside user data", () => {
+    const userData = createRoot();
+    const outside = createRoot();
+    symlinkSync(outside, path.join(userData, "ai-cli-sessions"), process.platform === "win32" ? "junction" : "dir");
+
+    for (const operation of [
+      () => prepareProviderWorkspace(userData, "cluster-1", "opencode"),
+      () => readProviderFile(userData, "cluster-1", "opencode", "AGENTS.md"),
+      () => writeProviderFile(userData, "cluster-1", "opencode", "AGENTS.md", "unsafe"),
+      () => resetProvider(userData, "cluster-1", "opencode"),
+    ]) {
+      expect(operation).toThrow(/Forbidden path/);
+    }
+  });
+
+  it("does not reveal a workdir when sessions root is symlinked outside user data", async () => {
+    const userData = createRoot();
+    const outside = createRoot();
+    const sessionsRoot = path.join(userData, "ai-cli-sessions");
+    symlinkSync(outside, sessionsRoot, process.platform === "win32" ? "junction" : "dir");
+    mkdirSync(computeProviderWorkdir(userData, "cluster-1", "opencode"), { recursive: true });
+    let opened = false;
+
+    await expect(
+      revealProviderWorkspace(userData, "cluster-1", "opencode", async () => {
+        opened = true;
+        return "";
+      }),
+    ).resolves.toEqual({ ok: false, error: "Forbidden path" });
+
+    expect(opened).toBe(false);
+  });
+
   it("reveals computed real provider workdir", async () => {
     const userData = createRoot();
     const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "claude");
