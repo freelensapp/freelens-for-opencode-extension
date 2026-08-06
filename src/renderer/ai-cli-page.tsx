@@ -162,90 +162,102 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
     retryProvider();
   }
 
+  const providerOptions = aiCliProviders.map((candidate) => ({ value: candidate.id, label: candidate.name }));
+
   return (
-    <div style={{ padding: "var(--padding, 16px)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Renderer.Component.SubTitle title={provider ? `${provider.name} Session` : "Freelens AI CLI"}>
-          {hasCurrentSelection && state.status === "ready" && (
-            <>
-              <Renderer.Component.StatusBrick className="running" /> {provider?.name} v{state.version}
-            </>
-          )}
-          {hasCurrentSelection && state.status === "loading" && (
-            <>
-              <Renderer.Component.StatusBrick className="waiting" /> Checking {provider?.name}...
-            </>
-          )}
-          {hasCurrentSelection && (state.status === "missing" || state.status === "error") && (
-            <Renderer.Component.StatusBrick className="failed" />
-          )}
-        </Renderer.Component.SubTitle>
-        <SectionThemeToggle />
-      </div>
-
-      <p>Select an AI CLI for this cluster. Provider workspaces are isolated per cluster.</p>
-      <div style={{ display: "flex", gap: "8px" }}>
-        {aiCliProviders.map((candidate) => (
-          <Renderer.Component.Button
-            key={candidate.id}
-            primary={candidate.id === providerId}
-            outlined={candidate.id !== providerId}
-            disabled={!clusterId || (state.status === "loading" && candidate.id === providerId)}
-            onClick={() => selectProvider(candidate.id)}
-          >
-            {candidate.id === providerId ? `Selected: ${candidate.name}` : `Select ${candidate.name}`}
-          </Renderer.Component.Button>
-        ))}
-      </div>
-      <p>
-        CLI permissions are convenience guardrails. Kubernetes RBAC and kubeconfig permissions remain the security
-        boundary.
-      </p>
-
-      {!clusterId && <p>No active cluster. Open a cluster first.</p>}
-      {hasCurrentSelection && state.status === "missing" && provider && (
-        <div>
-          <Renderer.Component.Icon material="error_outline" />
-          <span>{provider.name} not found on PATH</span>
-          <Renderer.Component.Button plain href={provider.docsUrl} target="_blank">
-            {provider.name} docs
-          </Renderer.Component.Button>
-          {state.error && <span>{state.error}</span>}
-          <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
+    <div style={{ height: "100%", overflowY: "auto", boxSizing: "border-box" }}>
+      <div
+        style={{
+          padding: "var(--padding, 16px)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Renderer.Component.SubTitle title={provider ? `${provider.name} Session` : "Freelens AI CLI"}>
+            {hasCurrentSelection && state.status === "ready" && (
+              <>
+                <Renderer.Component.StatusBrick className="running" /> {provider?.name} v{state.version}
+              </>
+            )}
+            {hasCurrentSelection && state.status === "loading" && (
+              <>
+                <Renderer.Component.StatusBrick className="waiting" /> Checking {provider?.name}...
+              </>
+            )}
+            {hasCurrentSelection && (state.status === "missing" || state.status === "error") && (
+              <Renderer.Component.StatusBrick className="failed" />
+            )}
+          </Renderer.Component.SubTitle>
+          <SectionThemeToggle />
         </div>
-      )}
-      {hasCurrentSelection && state.status === "error" && (
-        <div>
-          <Renderer.Component.Icon material="error_outline" />
-          <span>{provider ? `${provider.name}: ${state.error}` : state.error}</span>
-          <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
+
+        <p style={{ margin: 0 }}>Select an AI CLI for this cluster. Provider workspaces are isolated per cluster.</p>
+        <div style={{ maxWidth: "420px" }}>
+          <Renderer.Component.Select
+            id="ai-cli-provider-select"
+            themeName="lens"
+            placeholder="Select an AI CLI provider..."
+            isDisabled={!clusterId}
+            options={providerOptions}
+            value={providerId ?? null}
+            onChange={(option: { value: AiCliProviderId } | null) => option && selectProvider(option.value)}
+          />
         </div>
-      )}
-      {hasCurrentSelection && state.status === "ready" && provider && clusterId && (
-        <>
-          <div>
-            Working directory: <code>{state.workdir}</code>
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginTop: "0.5rem" }}>
-            <Renderer.Component.Button
-              primary
-              label={`Open ${provider.name} session`}
-              onClick={launch}
-              disabled={launching}
-              waiting={launching}
-            />
-            <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
-            <Renderer.Component.Button outlined onClick={() => void reset()}>
-              <Renderer.Component.Icon material="restart_alt" small />
-              Reset
+        <p style={{ margin: 0 }}>
+          CLI permissions are convenience guardrails. Kubernetes RBAC and kubeconfig permissions remain the security
+          boundary.
+        </p>
+
+        {!clusterId && <p style={{ margin: 0 }}>No active cluster. Open a cluster first.</p>}
+        {hasCurrentSelection && state.status === "missing" && provider && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <Renderer.Component.Icon material="error_outline" />
+            <span>{provider.name} not found on PATH</span>
+            <Renderer.Component.Button plain href={provider.docsUrl} target="_blank">
+              {provider.name} docs
             </Renderer.Component.Button>
+            {state.error && <span>{state.error}</span>}
+            <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
           </div>
-          <Renderer.Component.Gutter />
-          {provider.editors.map((editor) => (
-            <ProviderFileEditor key={editor.path} clusterId={clusterId} providerId={provider.id} editor={editor} />
-          ))}
-        </>
-      )}
+        )}
+        {hasCurrentSelection && state.status === "error" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <Renderer.Component.Icon material="error_outline" />
+              <span>{provider ? `${provider.name}: ${state.error}` : state.error}</span>
+              <Renderer.Component.Button outlined label="Retry" onClick={retryProvider} />
+            </div>
+            {state.error.includes("timed out") && (
+              <p style={{ margin: 0 }}>
+                You can increase the version probe timeout under Preferences, in the Extensions tab.
+              </p>
+            )}
+          </div>
+        )}
+        {hasCurrentSelection && state.status === "ready" && provider && clusterId && (
+          <>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <Renderer.Component.Button
+                primary
+                label={`Open ${provider.name} session`}
+                onClick={launch}
+                disabled={launching}
+                waiting={launching}
+              />
+              <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
+              <Renderer.Component.Button outlined onClick={() => void reset()}>
+                <Renderer.Component.Icon material="restart_alt" small />
+                Reset
+              </Renderer.Component.Button>
+            </div>
+            {provider.editors.map((editor) => (
+              <ProviderFileEditor key={editor.path} clusterId={clusterId} providerId={provider.id} editor={editor} />
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 });
