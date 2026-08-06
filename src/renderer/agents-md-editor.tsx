@@ -19,7 +19,7 @@ import { sectionThemeStore } from "./section-theme";
 
 loader.config({ monaco: monacoEditor as any });
 
-const CHANNEL_PREFIX = "opencode-extension:";
+const CHANNEL_PREFIX = "ai-cli-extension:";
 const SAVE_DEBOUNCE_MS = 500;
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -57,7 +57,12 @@ export const HarnessFileEditor = observer(function HarnessFileEditor({
     setError(undefined);
     (async () => {
       try {
-        const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}read-harness-file`, clusterId, relPath)) as {
+        const result = (await ipcRenderer.invoke(
+          `${CHANNEL_PREFIX}read-provider-file`,
+          clusterId,
+          "opencode",
+          relPath,
+        )) as {
           content: string;
           exists: boolean;
         };
@@ -85,7 +90,7 @@ export const HarnessFileEditor = observer(function HarnessFileEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-harness-file`, clusterId, relPath, next);
+        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-provider-file`, clusterId, "opencode", relPath, next);
         committedRef.current = next;
         setStatus("saved");
         setError(undefined);

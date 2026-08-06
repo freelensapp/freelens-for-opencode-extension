@@ -17,7 +17,7 @@ import type { ProviderCheckResult } from "../common/ai-cli-providers";
 // channel prefix matches the main side (Task 6). Upgrade path: if a future
 // Freelens release exposes a concrete per-extension IpcRenderer instance,
 // switch back to get the auto-prefixed channel + auto-cleanup disposers.
-const CHANNEL_PREFIX = "opencode-extension:";
+const CHANNEL_PREFIX = "ai-cli-extension:";
 
 type Status = "loading" | "ready" | "missing" | "error";
 
@@ -91,7 +91,11 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
       }
       const [check, harness] = await Promise.all([
         ipcRenderer.invoke("ai-cli-extension:check-provider", "opencode") as Promise<ProviderCheckResult>,
-        ipcRenderer.invoke(`${CHANNEL_PREFIX}prepare-harness`, clusterId) as Promise<PrepareHarnessResult>,
+        ipcRenderer.invoke(
+          `${CHANNEL_PREFIX}prepare-workspace`,
+          clusterId,
+          "opencode",
+        ) as Promise<PrepareHarnessResult>,
       ]);
       if (check.status !== "ready") {
         setState({ status: check.status, error: check.error, workdir: harness.workdir });
@@ -135,7 +139,11 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
 
   async function reveal() {
     if (!state.workdir) return;
-    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reveal-path`, state.clusterId)) as RevealPathResult;
+    const result = (await ipcRenderer.invoke(
+      `${CHANNEL_PREFIX}reveal-workspace`,
+      state.clusterId,
+      "opencode",
+    )) as RevealPathResult;
     if (!result.ok) {
       // ponytail: transient reveal failures surface as a host toast, not inline red text (spec §2).
       Renderer.Component.Notifications.error(`Reveal failed: ${result.error ?? "unknown"}`);
@@ -152,7 +160,11 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
       labelCancel: "Cancel",
     });
     if (!ok) return;
-    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reset-harness`, state.clusterId)) as ResetHarnessResult;
+    const result = (await ipcRenderer.invoke(
+      `${CHANNEL_PREFIX}reset-provider`,
+      state.clusterId,
+      "opencode",
+    )) as ResetHarnessResult;
     if (!result.ok) {
       Renderer.Component.Notifications.error(`Reset failed: ${result.error ?? "unknown"}`);
       return;
