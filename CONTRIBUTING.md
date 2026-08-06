@@ -5,7 +5,9 @@
 - Node.js >= 22
 - pnpm 10
 - Freelens >= 1.8.0
-- [opencode](https://opencode.ai/docs/) installed and on PATH
+- One or more supported providers on `PATH`: [OpenCode](https://opencode.ai/docs/),
+  [Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup), or
+  [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli)
 
 ## Setup
 
@@ -37,7 +39,7 @@ smoke-tested manually — no component unit tests.
 
 ```sh
 pnpm build
-pnpm pack          # produces @freelensapp/opencode-extension-x.y.z.tgz
+pnpm pack          # produces freelensapp-ai-cli-extension-x.y.z.tgz
 ```
 
 Open Freelens → Extensions (`Ctrl+Shift+E`) → drag the `.tgz` into the
@@ -71,10 +73,12 @@ Then `pnpm build` and reload Freelens (`Ctrl+R` / `Cmd+R`).
 
 Two-process Electron extension mirroring the Freelens extension model:
 
-- **Main** (`src/main/`) — registers IPC handlers for checking opencode,
-  managing harness files, and revealing paths. Pure modules: opencode
-  detection, workdir resolution, scaffold seeding, and safe file I/O.
-- **Renderer** (`src/renderer/`) — sidebar registration, the agent session
+- **Main** (`src/main/`) — registers `ai-cli-extension:` IPC handlers for
+  provider checks, workspace preparation, declared-file I/O, reset, and reveal.
+  Pure modules resolve isolated provider workdirs, seed registry scaffolds, and
+  validate file paths.
+- **Renderer** (`src/renderer/`) — sidebar registration, provider selection,
+  the AI CLI session
   page (MobX observer), and terminal dock tab launch via Freelens public
   APIs. `KUBECONFIG` is inherited from the active cluster's auth proxy by
   Freelens' built-in terminal infrastructure.
@@ -85,6 +89,5 @@ Editor (`monaco-editor` + `@monaco-editor/react`).
 
 ## Windows
 
-Opencode native Windows support is in progress upstream. WSL is the
-recommended path. When running on `win32`, the status page prints a
-warning.
+Provider Windows support varies. WSL can be useful when a selected provider
+does not support native Windows.

@@ -1,36 +1,30 @@
-# freelens-opencode-extension — Architecture
+# Freelens AI CLI Architecture
 
-Two-process Electron extension. Main: `LensMainExtension` with five IPC
-handlers (`check-opencode-installed`, `prepare-harness`, `read-harness-file`,
-`write-harness-file`, `reveal-path`) backed by pure modules under `src/main/`.
-Renderer: `LensRendererExtension` registering one cluster page + menu
-(`agent-session`); the page is a MobX `observer` status card that calls
-`Renderer.Component.createTerminalTab` + `terminalStore.sendCommand` to launch
-`opencode` in a built-in terminal dock tab with `KUBECONFIG` inherited from
-the active cluster's auth proxy, and renders an in-app Monaco editor for
-`AGENTS.md` plus a Reveal-workdir button.
+Two-process Electron extension. `src/common/ai-cli-providers.ts` is provider
+registry for OpenCode, Claude Code, and GitHub Copilot CLI. Entries define CLI
+metadata, declared editor files, reset paths, and provider scaffold identity.
+
+Main registers six raw Electron IPC operations under `ai-cli-extension:`:
+`check-provider`, `prepare-workspace`, `read-provider-file`,
+`write-provider-file`, `reveal-workspace`, and `reset-provider`. All handlers
+take cluster ID and provider ID, then derive an isolated server-side workdir at
+`<userData>/ai-cli-sessions/<safe-cluster-key>/<provider-id>`.
+
+Renderer registers one cluster page and menu. Its MobX `observer` selects a
+provider per cluster, checks it on `PATH`, prepares its workdir, opens a built-in
+terminal dock tab with inherited `KUBECONFIG`, and renders declared files in
+Monaco. Generation and selection guards drop stale asynchronous results after a
+cluster, provider, or retry change.
 
 Runtime globals (`@freelensapp/extensions`, `mobx`, `react`, ...) injected by
 the Freelens host. Monaco is the exception — `monaco-editor` and
 `@monaco-editor/react` are the extension's first runtime deps (bundled into
 `out/renderer/` via Vite `?worker` imports, shipped in the `.tgz`).
 
-## Per-cluster provider workspace (phase 1)
-
-Every cluster session gets a persistent `.opencode/` tree under
-`<userData>/ai-cli-sessions/<safe-id>/opencode/`, seeded from a bundled k8s-aware
-scaffold on first open (`ensure-harness.ts`). `get-provider-workdir.ts` computes
-this path with `computeProviderWorkdir()`; its safe cluster ID replaces unsupported
-characters and appends a short digest. Main registers four IPC
-handlers (`prepare-harness`, `read-harness-file`, `write-harness-file`,
-`reveal-path`) — all on the `opencode-extension:` prefix. Every read/write
-routes through `safeResolve(workdir, relPath)` in `harness-file.ts`, which
-anchors against `realpathSync(workdir)` to prevent path escape. The old
-`get-agent-workdir` IPC handler was dropped (`prepare-harness` returns the
-workdir); `prepareOpenCodeHarness()` moves an existing legacy OpenCode workspace
-before seeding the provider workspace.
-The renderer page (`agent-session-page.tsx`) calls `prepare-harness` once on
-load and renders a Monaco-based `AGENTS.md` editor with debounced autosave
-plus a Reveal workdir button. `monaco-editor` + `@monaco-editor/react` are
-the extension's first runtime deps; bundled under `out/renderer/` via Vite
-`?worker` imports, offline (`loader.config({ monaco })`).
+`provider-files.ts` permits only registry-declared files. It validates provider
+IDs and paths, rejects absolute, NUL, traversal, undeclared, and symlink-escape
+paths, and realpath-checks workdirs, targets, and existing parents against
+sessions root. Reset removes and re-seeds only declared `resetPaths`; it
+preserves instruction files and unrelated files. Provider guardrails are native
+CLI convenience controls, never a replacement for Kubernetes RBAC or kubeconfig
+permissions.

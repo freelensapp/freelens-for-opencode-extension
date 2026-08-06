@@ -3,6 +3,10 @@
 Releases move through automated versioning, tagging, publication, then a manual
 pre-release bump for next development cycle.
 
+Published package metadata is `@freelensapp/ai-cli-extension`; repository
+identity remains `freelensapp/freelens-for-opencode-extension` for trusted
+publishing.
+
 ## Required setup
 
 Configure repository before first release:

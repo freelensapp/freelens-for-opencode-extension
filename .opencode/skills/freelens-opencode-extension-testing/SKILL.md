@@ -1,4 +1,4 @@
-# freelens-opencode-extension — Testing
+# Freelens AI CLI Testing
 
 - Unit tests live next to the module: `<module>.test.ts`.
 - Runner: `vitest run` (`pnpm test:unit`). Default env `node`; jsdom opt-in
@@ -9,3 +9,8 @@
   specs can stub them; no real subprocess or filesystem touched.
 - `@freelensapp/extensions` is aliased to `test/freelens-extensions.ts` for
   any future component test; our current specs don't import it.
+- Test provider registry and metadata changes directly. Metadata must retain
+  repository remote URL while identifying `@freelensapp/ai-cli-extension` and
+  all provider keywords.
+- Cover provider isolation, declared-path enforcement, reset preservation, and
+  stale renderer-result guards when those flows change.

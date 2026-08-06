@@ -1,109 +1,83 @@
-# @freelensapp/opencode-extension
+# @freelensapp/ai-cli-extension
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Run an OpenCode AI agent session scoped to any Kubernetes cluster, straight
-from the Freelens sidebar. One click launches `opencode` in a docked terminal
-tab with `KUBECONFIG` wired, a k8s-aware harness pre-seeded, and an in-app
-AGENTS.md editor.
+Run an AI CLI session scoped to any Kubernetes cluster, straight from the
+Freelens sidebar. Select OpenCode, Claude Code, or GitHub Copilot CLI; Freelens
+launches selected provider in a docked terminal tab with `KUBECONFIG` wired and
+provider-native files pre-seeded.
 
-<img src="docs/images/freelens-opencode-screenshot.png" width="800" alt="OpenCode in Freelens sidebar">
+<img src="docs/images/freelens-opencode-screenshot.png" width="800" alt="AI CLI session in Freelens sidebar">
 
 ## Why
 
-Operating Kubernetes clusters means constant context-switching between
-Freelens and a separate terminal for AI-assisted work. This extension
-collapses that gap. Click **OpenCode** under any cluster and you get a
-fully-provisioned opencode session inside Freelens — same KUBECONFIG, same
-workspace, zero configuration.
-
-🚀 Your agent can do literally everything you'd do with `kubectl` —
-inspect, debug, deploy, scale, troubleshoot. But that's just the start.
-
-It owns a **full workspace** where it can create manifests, write
-configuration files, customize your agent, scaffold Helm charts, and architect entire complex
-applications from scratch. 
-
-Think of it as a senior DevOps engineer that
-lives inside your cluster sidebar, ready to build anything you describe.
-🛠️✨
+Operating Kubernetes clusters means switching between Freelens and a terminal
+for AI-assisted work. This extension keeps provider sessions in Freelens while
+leaving each cluster and provider with an isolated workspace.
 
 ## Features
 
-- **One-click sessions** — click the sidebar entry, get a terminal dock
-  tab running opencode pre-cd'd into the cluster workspace.
-- **Per-cluster isolation** — each cluster gets its own workdir at
-  `<userData>/ai-cli-sessions/<safe-cluster-id>/opencode/`. Sessions never collide.
-- **K8s-aware harness** — `AGENTS.md`, `skills`, `mcp`, `custom agents` and **any opencode feature** is
-  available automatically. Editable at any time.
-- **In-app AGENTS.md editor** — full editor inside Freelens with
-  debounced autosave and theme matching.
-- **Permission editor** — a JSON editor for `.opencode/opencode.json`
-  built right into the session page. Define exactly which shell commands
-  the AI agent may run with `allow`, `ask`, or `deny` rules. Ships with
-  safe defaults (destructive operations require confirmation), it is scoped per cluster so production and staging clusters
-  stay independently protected.
+- **Provider selection** — select OpenCode, Claude Code, or GitHub Copilot CLI
+  per cluster. Selection persists per cluster and can change at any time.
+- **Per-cluster isolation** — each provider workdir is
+  `<userData>/ai-cli-sessions/<safe-cluster-id>/<provider-id>/`.
+- **Provider-native scaffolds** — registry entries declare managed editor files,
+  reset paths, and bundled scaffolds for every provider.
+- **In-app editors** — edit provider-declared instruction, permissions, and
+  settings files with debounced autosave and theme matching.
+- **Checks and retry** — provider availability is checked on `PATH`; missing or
+  failed checks show retry action. Changing cluster or provider drops stale
+  in-flight results.
+- **Reveal workdir** — open only selected provider's validated workdir in native
+  file manager.
 <img src="docs/images/permission-settings.png" width="800" alt="OpenCode permission editor">
 
-- **Pre-flight check** — probes your PATH for opencode upfront. If it's
-  missing you see a clear banner with a retry button.
-- **Zero bundled binary** — you install opencode once on your system; the
-  extension uses it. Works on macOS, Linux, and Windows (WSL recommended).
-
-Every feature is powered by [OpenCode](https://opencode.ai) itself — the
-agentic engine that drives the AI session. This extension layers Freelens
-integration on top (sidebar launch, in-app editors, KUBECONFIG wiring,
-per-cluster workdirs), but permissions, skills, MCPs, custom agents, and
-AGENTS.md instructions all run through OpenCode's native engine.
+CLI permission files are provider-native convenience guardrails. Kubernetes
+RBAC and kubeconfig permissions remain security boundary.
 
 ## Quick start
 
-### 1. Install opencode
+### 1. Install a provider
 
-[Download and install opencode](https://opencode.ai/docs/) for your
-platform. The extension detects it via `PATH` — it does not bundle or
-update opencode.
+Install [OpenCode](https://opencode.ai/docs/),
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup), or
+[GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli).
+The extension detects providers via `PATH`; it does not bundle or update them.
 
 ### 2. Install the extension
 
-Open Freelens, go to **Extensions** ... TDB
+Open Freelens, go to **Extensions**, and install extension archive.
 
 ### 3. Launch a session
 
-Click **OpenCode** in any cluster sidebar. A terminal tab opens,
-navigates to the cluster workspace, and starts opencode. Repeat per
-cluster — each session is independent.
+Click **AI CLI** in any cluster sidebar, select an installed provider, then
+open its session. Repeat per cluster; every provider workspace is independent.
 
 ## How it works
 
-Each cluster gets a persistent workspace:
+Each cluster and provider get a persistent workspace:
 
 ```
-<userData>/ai-cli-sessions/<safe-cluster-id>/opencode/
-  .opencode/
-    opencode.json          # kubectl permission rules
-  AGENTS.md                # your cluster-specific instructions
+<userData>/ai-cli-sessions/<safe-cluster-id>/<provider-id>/
+  <provider-native files>
 ```
 
 `<safe-cluster-id>` replaces unsupported characters in the cluster ID and appends a short digest, preserving
 isolation when different IDs sanitize to the same value.
 
-On first open, the extension copies a provider-native scaffold into the
-workdir. OpenCode permits read-oriented `kubectl` and Helm inspection
-commands; every other Bash command prompts for approval. Open the in-app
-**permission editor** to adjust these per-cluster guardrails. Each rule
-maps a shell command pattern to `allow` (run silently), `ask` (prompt the
-user), or `deny` (block outright).
+On first open, the extension copies provider-native scaffold files into the
+workdir. OpenCode uses `AGENTS.md` and `.opencode/opencode.json`; Claude Code
+uses `CLAUDE.md` and `.claude/settings.json`; Copilot uses
+`.github/copilot-instructions.md` and `.github/copilot/settings.json`.
 
-After that the harness is yours — edit `AGENTS.md` and permissions in
-the in-app editors, or reveal the workdir in your file manager
-to edit everything with your own tools. Every opencode feature is
-scoped to that cluster: skills, MCPs, custom instructions, agents, and
-permission rules.
+Edit declared files in Freelens or reveal workdir to use other tools. Provider
+guardrails apply only within that CLI. They do not grant Kubernetes access or
+replace RBAC and kubeconfig permissions.
 
-**Reset:** re-seeds only the provider registry's declared managed config
-file, currently `.opencode/opencode.json`. Your `AGENTS.md` instructions
-and unrelated workspace files remain unchanged.
+**Reset:** removes and re-seeds only provider registry `resetPaths`: currently
+`.opencode/opencode.json`, `.claude/settings.json`, or
+`.github/copilot/settings.json`. Instruction files and unrelated workspace
+files remain unchanged.
 
 # Video demo
 

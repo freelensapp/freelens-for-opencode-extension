@@ -24,9 +24,11 @@ existing parents. Real workdirs must remain under real sessions root; checks
 are case-insensitive on Windows. Reject absolute, NUL, traversal, undeclared,
 and symlink-escaping paths with `Forbidden path`.
 
-`src/main/index.ts` keeps current OpenCode IPC channel names as renderer
-bridge, but handlers take cluster ID and derive workdir server-side. Do not
-accept renderer-supplied workdir paths.
+`src/main/index.ts` uses raw Electron IPC with `ai-cli-extension:` prefix. Its
+six operations are `check-provider`, `prepare-workspace`,
+`read-provider-file`, `write-provider-file`, `reveal-workspace`, and
+`reset-provider`. Handlers take cluster ID and derive workdir server-side. Do
+not accept renderer-supplied workdir paths.
 
 Deleted legacy modules: `ensure-harness.ts`, `harness-file.ts`,
 `reveal-path.ts`, and `src/main/scaffold/`. Provider scaffolds live in
