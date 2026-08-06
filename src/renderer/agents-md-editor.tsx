@@ -26,6 +26,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface HarnessFileEditorProps {
   workdir: string;
+  clusterId: string;
   // Path relative to workdir. Defaults to AGENTS.md for backwards compat.
   relPath?: string;
   title?: string;
@@ -34,6 +35,7 @@ interface HarnessFileEditorProps {
 
 export const HarnessFileEditor = observer(function HarnessFileEditor({
   workdir,
+  clusterId,
   relPath = "AGENTS.md",
   title = relPath,
   language = "markdown",
@@ -55,7 +57,7 @@ export const HarnessFileEditor = observer(function HarnessFileEditor({
     setError(undefined);
     (async () => {
       try {
-        const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}read-harness-file`, workdir, relPath)) as {
+        const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}read-harness-file`, clusterId, relPath)) as {
           content: string;
           exists: boolean;
         };
@@ -74,7 +76,7 @@ export const HarnessFileEditor = observer(function HarnessFileEditor({
       cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [workdir, relPath]);
+  }, [clusterId, workdir, relPath]);
 
   function onChange(value: string | undefined) {
     const next = value ?? "";
@@ -83,7 +85,7 @@ export const HarnessFileEditor = observer(function HarnessFileEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-harness-file`, workdir, relPath, next);
+        await ipcRenderer.invoke(`${CHANNEL_PREFIX}write-harness-file`, clusterId, relPath, next);
         committedRef.current = next;
         setStatus("saved");
         setError(undefined);

@@ -1,9 +1,13 @@
 import { Main } from "@freelensapp/extensions";
-import { app, ipcMain } from "electron";
+import { app, ipcMain, shell } from "electron";
 import { checkProvider } from "./check-provider";
-import { prepareOpenCodeHarness, resetHarness } from "./ensure-harness";
-import { assertSessionsWorkdir, safeRead, safeWrite } from "./harness-file";
-import { revealPath } from "./reveal-path";
+import {
+  prepareProviderWorkspace,
+  readProviderFile,
+  resetProvider,
+  revealProviderWorkspace,
+  writeProviderFile,
+} from "./provider-files";
 
 // ponytail: extension uses raw electron ipcMain directly instead of the
 // Main.Ipc abstraction exported by @freelensapp/extensions. Reason: Main.Ipc
@@ -22,21 +26,19 @@ export default class OpencodeMainExtension extends Main.LensExtension {
     ipcMain.removeHandler("ai-cli-extension:check-provider");
     ipcMain.handle("ai-cli-extension:check-provider", (_event, providerId: string) => checkProvider(providerId));
 
-    // Returns { workdir, seeded }. Computes workdir, mkdir -p, seeds scaffold
-    // from out/main/scaffold/ on first open. Replaces get-agent-workdir: it
-    // returns the workdir too, so the renderer needs only this handler.
+    // Existing OpenCode channels stay stable while their file operations derive
+    // the provider workdir from trusted cluster and provider inputs.
     ipcMain.handle(`${CHANNEL_PREFIX}prepare-harness`, async (_event, clusterId: string) => {
       try {
-        return prepareOpenCodeHarness(app.getPath("userData"), clusterId);
+        return prepareProviderWorkspace(app.getPath("userData"), clusterId, "opencode");
       } catch (err: any) {
         throw new Error(`Could not prepare harness: ${err?.message ?? err}`);
       }
     });
 
-    ipcMain.handle(`${CHANNEL_PREFIX}read-harness-file`, async (_event, workdir: string, relPath: string) => {
+    ipcMain.handle(`${CHANNEL_PREFIX}read-harness-file`, async (_event, clusterId: string, relPath: string) => {
       try {
-        const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
-        return safeRead(realWd, relPath);
+        return readProviderFile(app.getPath("userData"), clusterId, "opencode", relPath);
       } catch (err: any) {
         throw new Error(`Could not read harness file: ${err?.message ?? err}`);
       }
@@ -44,24 +46,22 @@ export default class OpencodeMainExtension extends Main.LensExtension {
 
     ipcMain.handle(
       `${CHANNEL_PREFIX}write-harness-file`,
-      async (_event, workdir: string, relPath: string, content: string) => {
+      async (_event, clusterId: string, relPath: string, content: string) => {
         try {
-          const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
-          return safeWrite(realWd, relPath, content);
+          return writeProviderFile(app.getPath("userData"), clusterId, "opencode", relPath, content);
         } catch (err: any) {
           throw new Error(`Could not write harness file: ${err?.message ?? err}`);
         }
       },
     );
 
-    ipcMain.handle(`${CHANNEL_PREFIX}reveal-path`, async (_event, absPath: string) => {
-      return revealPath(app.getPath("userData"), absPath);
+    ipcMain.handle(`${CHANNEL_PREFIX}reveal-path`, async (_event, clusterId: string) => {
+      return revealProviderWorkspace(app.getPath("userData"), clusterId, "opencode", shell.openPath);
     });
 
-    ipcMain.handle(`${CHANNEL_PREFIX}reset-harness`, async (_event, workdir: string) => {
+    ipcMain.handle(`${CHANNEL_PREFIX}reset-harness`, async (_event, clusterId: string) => {
       try {
-        const realWd = assertSessionsWorkdir(app.getPath("userData"), workdir);
-        resetHarness(realWd);
+        resetProvider(app.getPath("userData"), clusterId, "opencode");
         return { ok: true };
       } catch (err: any) {
         return { ok: false, error: err?.message ?? String(err) };

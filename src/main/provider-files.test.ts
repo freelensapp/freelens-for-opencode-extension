@@ -1,0 +1,109 @@
+import { existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { aiCliProviders } from "../common/ai-cli-providers";
+import {
+  prepareProviderWorkspace,
+  readProviderFile,
+  resetProvider,
+  revealProviderWorkspace,
+  writeProviderFile,
+} from "./provider-files";
+
+const roots: string[] = [];
+
+function createRoot(): string {
+  const root = mkdtempSync(path.join(tmpdir(), "provider-workspace-"));
+  roots.push(root);
+  return root;
+}
+
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+describe("provider workspaces", () => {
+  it.each(aiCliProviders)("seeds each provider's declared files without clobbering them", (provider) => {
+    const userData = createRoot();
+    const first = prepareProviderWorkspace(userData, "cluster-1", provider.id);
+
+    expect(first.seeded).toBe(true);
+    for (const editor of provider.editors) {
+      const target = path.join(first.workdir, editor.path);
+      expect(existsSync(target)).toBe(true);
+      writeFileSync(target, `edited ${editor.path}`, "utf8");
+    }
+
+    expect(prepareProviderWorkspace(userData, "cluster-1", provider.id)).toEqual({
+      workdir: first.workdir,
+      seeded: false,
+    });
+    for (const editor of provider.editors) {
+      expect(readFileSync(path.join(first.workdir, editor.path), "utf8")).toBe(`edited ${editor.path}`);
+    }
+  });
+
+  it("resets only registered reset paths", () => {
+    const userData = createRoot();
+    const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "opencode");
+    const instructions = path.join(workdir, "AGENTS.md");
+    const unrelated = path.join(workdir, "notes.md");
+    writeFileSync(instructions, "keep instructions", "utf8");
+    writeFileSync(unrelated, "keep notes", "utf8");
+
+    resetProvider(userData, "cluster-1", "opencode");
+
+    expect(readFileSync(instructions, "utf8")).toBe("keep instructions");
+    expect(readFileSync(unrelated, "utf8")).toBe("keep notes");
+    expect(existsSync(path.join(workdir, ".opencode", "opencode.json"))).toBe(true);
+  });
+
+  it.each([
+    "../escape",
+    "dir/../file",
+    "bad\0path",
+    path.resolve(path.sep, "absolute"),
+  ])("rejects unsafe declared paths: %s", (relPath) => {
+    const userData = createRoot();
+    prepareProviderWorkspace(userData, "cluster-1", "opencode");
+
+    expect(() => readProviderFile(userData, "cluster-1", "opencode", relPath)).toThrow(/Forbidden path/);
+  });
+
+  it("rejects writes to paths not declared by provider", () => {
+    const userData = createRoot();
+    prepareProviderWorkspace(userData, "cluster-1", "opencode");
+
+    expect(() => writeProviderFile(userData, "cluster-1", "opencode", "notes.md", "no")).toThrow(/Forbidden path/);
+  });
+
+  it("rejects a declared file whose parent symlink escapes the workdir", () => {
+    const userData = createRoot();
+    const outside = createRoot();
+    const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "opencode");
+    const opencodeDir = path.join(workdir, ".opencode");
+    rmSync(opencodeDir, { recursive: true, force: true });
+    symlinkSync(outside, opencodeDir, process.platform === "win32" ? "junction" : "dir");
+
+    expect(() => writeProviderFile(userData, "cluster-1", "opencode", ".opencode/opencode.json", "{}")).toThrow(
+      /Forbidden path/,
+    );
+    expect(lstatSync(opencodeDir).isSymbolicLink()).toBe(true);
+  });
+
+  it("reveals computed real provider workdir", async () => {
+    const userData = createRoot();
+    const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "claude");
+    let revealed = "";
+
+    await expect(
+      revealProviderWorkspace(userData, "cluster-1", "claude", async (selected) => {
+        revealed = selected;
+        return "";
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(revealed).toBe(path.resolve(workdir));
+  });
+});

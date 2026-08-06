@@ -23,6 +23,7 @@ type Status = "loading" | "ready" | "missing" | "error";
 
 interface PageState {
   status: Status;
+  clusterId?: string;
   version?: string;
   workdir?: string;
   error?: string;
@@ -96,7 +97,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
         setState({ status: check.status, error: check.error, workdir: harness.workdir });
         return;
       }
-      setState({ status: "ready", version: check.version, workdir: harness.workdir });
+      setState({ status: "ready", clusterId, version: check.version, workdir: harness.workdir });
     } catch (err: any) {
       setState({ status: "error", error: err?.message ?? String(err) });
     }
@@ -134,7 +135,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
 
   async function reveal() {
     if (!state.workdir) return;
-    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reveal-path`, state.workdir)) as RevealPathResult;
+    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reveal-path`, state.clusterId)) as RevealPathResult;
     if (!result.ok) {
       // ponytail: transient reveal failures surface as a host toast, not inline red text (spec §2).
       Renderer.Component.Notifications.error(`Reveal failed: ${result.error ?? "unknown"}`);
@@ -151,7 +152,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
       labelCancel: "Cancel",
     });
     if (!ok) return;
-    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reset-harness`, state.workdir)) as ResetHarnessResult;
+    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}reset-harness`, state.clusterId)) as ResetHarnessResult;
     if (!result.ok) {
       Renderer.Component.Notifications.error(`Reset failed: ${result.error ?? "unknown"}`);
       return;
@@ -203,7 +204,7 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
         </div>
       )}
 
-      {state.status === "ready" && state.workdir && (
+      {state.status === "ready" && state.workdir && state.clusterId && (
         <>
           <div>
             Working directory: <code>{state.workdir}</code>
@@ -227,9 +228,16 @@ export const AgentSessionPage = observer(function AgentSessionPage({ extension: 
             </Renderer.Component.Button>
           </div>
           <Renderer.Component.Gutter />
-          <HarnessFileEditor workdir={state.workdir} relPath="AGENTS.md" title="AGENTS.md" language="markdown" />
           <HarnessFileEditor
             workdir={state.workdir}
+            clusterId={state.clusterId}
+            relPath="AGENTS.md"
+            title="AGENTS.md"
+            language="markdown"
+          />
+          <HarnessFileEditor
+            workdir={state.workdir}
+            clusterId={state.clusterId}
             relPath=".opencode/opencode.json"
             title="Permissions (.opencode/opencode.json)"
             language="json"

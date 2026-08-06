@@ -35,17 +35,17 @@ function emptyMonacoCss() {
   };
 }
 
-// Copies the bundled k8s-aware scaffold (opencode.json + AGENTS.md) from
-// src/main/scaffold/ to out/main/scaffold/ at the end of the main build, so
-// resolveScaffoldDir() finds the bundled copy in production. Runs at
+// Copies provider-specific k8s-aware scaffolds from src/main/scaffolds/ to
+// out/main/scaffolds/ at the end of the main build, so resolveScaffoldsRoot()
+// finds the bundled copies in production. Runs at
 // closeBundle so it lands after rolldown writes out/main/index.js.
 function copyScaffold() {
   return {
     name: "copy-scaffold",
     apply: "build",
     closeBundle() {
-      const src = resolve(process.cwd(), "src", "main", "scaffold");
-      const dest = resolve(process.cwd(), "out", "main", "scaffold");
+      const src = resolve(process.cwd(), "src", "main", "scaffolds");
+      const dest = resolve(process.cwd(), "out", "main", "scaffolds");
       rmSync(dest, { recursive: true, force: true });
       cpSync(src, dest, { recursive: true });
     },
