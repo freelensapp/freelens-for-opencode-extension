@@ -1,8 +1,18 @@
-import { existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { aiCliProviders } from "../common/ai-cli-providers";
+import { computeProviderWorkdir } from "./get-provider-workdir";
 import {
   prepareProviderWorkspace,
   readProviderFile,
@@ -90,6 +100,23 @@ describe("provider workspaces", () => {
       /Forbidden path/,
     );
     expect(lstatSync(opencodeDir).isSymbolicLink()).toBe(true);
+  });
+
+  it("rejects every managed operation when the computed workdir escapes sessions", () => {
+    const userData = createRoot();
+    const outside = createRoot();
+    const workdir = computeProviderWorkdir(userData, "cluster-1", "opencode");
+    mkdirSync(path.dirname(workdir), { recursive: true });
+    symlinkSync(outside, workdir, process.platform === "win32" ? "junction" : "dir");
+
+    for (const operation of [
+      () => prepareProviderWorkspace(userData, "cluster-1", "opencode"),
+      () => readProviderFile(userData, "cluster-1", "opencode", "AGENTS.md"),
+      () => writeProviderFile(userData, "cluster-1", "opencode", "AGENTS.md", "unsafe"),
+      () => resetProvider(userData, "cluster-1", "opencode"),
+    ]) {
+      expect(operation).toThrow(/Forbidden path/);
+    }
   });
 
   it("reveals computed real provider workdir", async () => {

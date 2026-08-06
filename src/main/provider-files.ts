@@ -39,10 +39,16 @@ function assertDeclaredPath(providerId: string, relPath: string): void {
 }
 
 function getWorkdir(userData: string, clusterId: string, providerId: string): string {
+  const sessionsRoot = path.join(userData, "ai-cli-sessions");
+  mkdirSync(sessionsRoot, { recursive: true });
   const workdir = computeProviderWorkdir(userData, clusterId, providerId);
   mkdirSync(workdir, { recursive: true });
+  const realSessionsRoot = realpathSync(sessionsRoot);
+  const realWorkdir = realpathSync(workdir);
 
-  return realpathSync(workdir);
+  if (!isInside(realSessionsRoot, realWorkdir)) throw new Error("Forbidden path");
+
+  return realWorkdir;
 }
 
 function nearestExistingParent(target: string): string {

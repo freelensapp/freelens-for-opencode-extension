@@ -88,15 +88,12 @@ Each cluster gets a persistent workspace:
 `<safe-cluster-id>` replaces unsupported characters in the cluster ID and appends a short digest, preserving
 isolation when different IDs sanitize to the same value.
 
-On first open, the extension copies a bundled scaffold into the workdir
-with safe k8s defaults — all bash commands allowed by default, but
-destructive operations like `kubectl delete`, `kubectl drain`, and
-`helm uninstall` set to `ask` for confirmation. Open the in-app
-**permission editor** to tighten or loosen these rules at any time. Each
-rule maps a shell command pattern to `allow` (run silently), `ask`
-(prompt the user), or `deny` (block outright). Because permissions live
-per cluster, you can lock down production tightly while keeping staging
-more permissive — no global config collisions.
+On first open, the extension copies a provider-native scaffold into the
+workdir. OpenCode permits read-oriented `kubectl` and Helm inspection
+commands; every other Bash command prompts for approval. Open the in-app
+**permission editor** to adjust these per-cluster guardrails. Each rule
+maps a shell command pattern to `allow` (run silently), `ask` (prompt the
+user), or `deny` (block outright).
 
 After that the harness is yours — edit `AGENTS.md` and permissions in
 the in-app editors, or reveal the workdir in your file manager
@@ -104,8 +101,9 @@ to edit everything with your own tools. Every opencode feature is
 scoped to that cluster: skills, MCPs, custom instructions, agents, and
 permission rules.
 
-**Reset:** delete the `.opencode/` directory inside the workdir and
-reopen the session. The scaffold re-seeds clean.
+**Reset:** re-seeds only the provider registry's declared managed config
+file, currently `.opencode/opencode.json`. Your `AGENTS.md` instructions
+and unrelated workspace files remain unchanged.
 
 # Video demo
 
