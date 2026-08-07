@@ -17,7 +17,11 @@ export function readExtensionSettings(userData: string): ExtensionSettings {
 }
 
 export function writeExtensionSettings(userData: string, settings: unknown): ExtensionSettings {
-  const normalized = normalizeExtensionSettings(settings);
+  // Merge partial updates over the currently stored settings so a renderer
+  // component that saves only its own field does not reset the others to their
+  // defaults.
+  const patch = typeof settings === "object" && settings !== null ? settings : {};
+  const normalized = normalizeExtensionSettings({ ...readExtensionSettings(userData), ...patch });
 
   mkdirSync(userData, { recursive: true });
   writeFileSync(path.join(userData, SETTINGS_FILE), `${JSON.stringify(normalized, null, 2)}\n`, "utf8");

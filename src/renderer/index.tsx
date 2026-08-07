@@ -1,6 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { AiCliPage } from "./ai-cli-page";
-import { ProbeTimeoutHint, ProbeTimeoutSetting } from "./settings-page";
+import { EditorCommandHint, EditorCommandSetting, ProbeTimeoutHint, ProbeTimeoutSetting } from "./settings-page";
 
 const {
   Component: { Icon },
@@ -34,6 +34,14 @@ export default class AiCliRendererExtension extends Renderer.LensExtension {
       components: {
         Input: () => <ProbeTimeoutSetting />,
         Hint: () => <ProbeTimeoutHint />,
+      },
+    },
+    {
+      id: "ai-cli-editor-command",
+      title: "Freelens AI CLI",
+      components: {
+        Input: () => <EditorCommandSetting />,
+        Hint: () => <EditorCommandHint />,
       },
     },
   ];

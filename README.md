@@ -30,6 +30,9 @@ leaving each cluster and provider with an isolated workspace.
   in-flight results.
 - **Reveal workdir** — open only selected provider's validated workdir in native
   file manager.
+- **Open in editor** — open the selected provider's validated workdir as a
+  project in VS Code (or a configured fork). Uses the editor CLI, falling back to
+  the editor's URL handler when the command is not on `PATH`.
 <img src="docs/images/permission-settings.png" width="800" alt="OpenCode permission editor">
 
 CLI permission files are provider-native convenience guardrails. Kubernetes
@@ -70,9 +73,18 @@ workdir. OpenCode uses `AGENTS.md` and `.opencode/opencode.json`; Claude Code
 uses `CLAUDE.md` and `.claude/settings.json`; Copilot uses
 `.github/copilot-instructions.md` and `.github/copilot/settings.json`.
 
-Edit declared files in Freelens or reveal workdir to use other tools. Provider
-guardrails apply only within that CLI. They do not grant Kubernetes access or
-replace RBAC and kubeconfig permissions.
+Edit declared files in Freelens, reveal workdir, or open the workdir as a
+project in your editor to use other tools. Provider guardrails apply only within
+that CLI. They do not grant Kubernetes access or replace RBAC and kubeconfig
+permissions.
+
+**Open in editor:** the **Open in editor** button opens the validated workdir as
+a project window. It runs the configured editor command (default `code`) with
+the workdir as its argument; if that command cannot be launched it falls back to
+the editor's `vscode://file/...` URL handler. Set the **Editor command** under
+**Preferences → Extensions → Freelens AI CLI** to use a VS Code fork such as
+`codium` or `cursor`. On macOS, run "Shell Command: Install 'code' command in
+PATH" from VS Code so the CLI is available.
 
 **Reset:** removes and re-seeds only provider registry `resetPaths`: currently
 `.opencode/opencode.json`, `.claude/settings.json`, or

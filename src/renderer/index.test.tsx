@@ -8,6 +8,8 @@ vi.mock("./ai-cli-page", () => ({
 vi.mock("./settings-page", () => ({
   ProbeTimeoutSetting: () => null,
   ProbeTimeoutHint: () => null,
+  EditorCommandSetting: () => null,
+  EditorCommandHint: () => null,
 }));
 
 import AiCliRendererExtension from "./index";
@@ -35,12 +37,22 @@ describe("AiCliRendererExtension sidebar registration", () => {
   it("registers the probe timeout preference", () => {
     const extension = new AiCliRendererExtension({} as never);
 
-    expect(extension.appPreferences).toHaveLength(1);
+    expect(extension.appPreferences).toHaveLength(2);
 
     const [preference] = extension.appPreferences;
 
     expect(preference).toMatchObject({ id: "ai-cli-probe-timeout", title: "Freelens AI CLI" });
     expect(preference.components.Input).toBeTypeOf("function");
     expect(preference.components.Hint).toBeTypeOf("function");
+  });
+
+  it("registers the editor command preference", () => {
+    const extension = new AiCliRendererExtension({} as never);
+
+    const preference = extension.appPreferences.find((entry) => entry.id === "ai-cli-editor-command");
+
+    expect(preference).toMatchObject({ id: "ai-cli-editor-command", title: "Freelens AI CLI" });
+    expect(preference?.components.Input).toBeTypeOf("function");
+    expect(preference?.components.Hint).toBeTypeOf("function");
   });
 });

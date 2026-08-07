@@ -2,6 +2,7 @@ import { Main } from "@freelensapp/extensions";
 import { app, ipcMain, shell } from "electron";
 import { checkProvider } from "./check-provider";
 import { readExtensionSettings, writeExtensionSettings } from "./extension-settings-store";
+import { openWorkspaceInEditor } from "./open-in-editor";
 import {
   prepareProviderWorkspace,
   readProviderFile,
@@ -30,6 +31,7 @@ export default class AiCliMainExtension extends Main.LensExtension {
       "read-provider-file",
       "write-provider-file",
       "reveal-workspace",
+      "open-in-editor",
       "reset-provider",
       "get-settings",
       "set-settings",
@@ -56,6 +58,14 @@ export default class AiCliMainExtension extends Main.LensExtension {
     ipcMain.handle(`${CHANNEL_PREFIX}reveal-workspace`, (_event, clusterId: string, providerId: string) =>
       revealProviderWorkspace(app.getPath("userData"), clusterId, providerId, shell.openPath),
     );
+    ipcMain.handle(`${CHANNEL_PREFIX}open-in-editor`, (_event, clusterId: string, providerId: string) => {
+      const settings = readExtensionSettings(app.getPath("userData"));
+      return openWorkspaceInEditor(app.getPath("userData"), clusterId, providerId, {
+        editorCommand: settings.editorCommand,
+        editorUriScheme: settings.editorUriScheme,
+        openExternal: shell.openExternal,
+      });
+    });
     ipcMain.handle(`${CHANNEL_PREFIX}reset-provider`, (_event, clusterId: string, providerId: string) => {
       try {
         resetProvider(app.getPath("userData"), clusterId, providerId);

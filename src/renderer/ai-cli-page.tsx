@@ -141,6 +141,16 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
     if (!result.ok) Renderer.Component.Notifications.error(`Reveal failed: ${result.error ?? "unknown"}`);
   }
 
+  async function openInEditor() {
+    if (!clusterId || !provider) return;
+    const result = (await ipcRenderer.invoke(`${CHANNEL_PREFIX}open-in-editor`, clusterId, provider.id)) as {
+      ok: boolean;
+      error?: string;
+    };
+
+    if (!result.ok) Renderer.Component.Notifications.error(`Open in editor failed: ${result.error ?? "unknown"}`);
+  }
+
   async function reset() {
     if (!clusterId || !provider || state.status !== "ready") return;
     const ok = await Renderer.Component.ConfirmDialog.confirm({
@@ -247,6 +257,10 @@ export const AiCliPage = observer(function AiCliPage({ extension: _extension }: 
                 waiting={launching}
               />
               <Renderer.Component.Button outlined label="Reveal workdir" onClick={() => void reveal()} />
+              <Renderer.Component.Button outlined onClick={() => void openInEditor()}>
+                <Renderer.Component.Icon material="code" small />
+                Open in editor
+              </Renderer.Component.Button>
               <Renderer.Component.Button outlined onClick={() => void reset()}>
                 <Renderer.Component.Icon material="restart_alt" small />
                 Reset

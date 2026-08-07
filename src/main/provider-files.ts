@@ -210,6 +210,19 @@ export function resetProvider(
   return prepareProviderWorkspace(userData, clusterId, provider.id, explicitScaffoldsRoot);
 }
 
+// Resolve the provider workdir and verify it is contained inside the sessions
+// root before it is handed to any launcher (file manager, editor, ...). Throws
+// "Forbidden path" if the resolved real path escapes the sessions root. The
+// directory must already exist (its real path is resolved via realpathSync).
+export function resolveVerifiedWorkdir(userData: string, clusterId: string, providerId: string): string {
+  getAiCliProvider(providerId);
+  const { userData: realUserData, sessionsRoot } = getRealSessionsRoot(userData);
+  const workdir = realpathSync(computeProviderWorkdir(realUserData, clusterId, providerId));
+  if (!isInside(sessionsRoot, workdir)) throw new Error("Forbidden path");
+
+  return workdir;
+}
+
 export async function revealProviderWorkspace(
   userData: string,
   clusterId: string,
@@ -217,10 +230,7 @@ export async function revealProviderWorkspace(
   openPath: OpenPath,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    getAiCliProvider(providerId);
-    const { userData: realUserData, sessionsRoot } = getRealSessionsRoot(userData);
-    const workdir = realpathSync(computeProviderWorkdir(realUserData, clusterId, providerId));
-    if (!isInside(sessionsRoot, workdir)) return { ok: false, error: "Forbidden path" };
+    const workdir = resolveVerifiedWorkdir(userData, clusterId, providerId);
 
     const result = await openPath(workdir);
     return result === "" ? { ok: true } : { ok: false, error: result };

@@ -4,9 +4,11 @@ const mocks = vi.hoisted(() => ({
   checkProvider: vi.fn(),
   getPath: vi.fn(() => "/user-data"),
   handle: vi.fn(),
+  openExternal: vi.fn(),
   openPath: vi.fn(),
+  openWorkspaceInEditor: vi.fn(),
   prepareProviderWorkspace: vi.fn(),
-  readExtensionSettings: vi.fn(() => ({ probeTimeoutMs: 15_000 })),
+  readExtensionSettings: vi.fn(() => ({ probeTimeoutMs: 15_000, editorCommand: "code", editorUriScheme: "vscode" })),
   readProviderFile: vi.fn(),
   removeHandler: vi.fn(),
   resetProvider: vi.fn(),
@@ -22,10 +24,11 @@ vi.mock("@freelensapp/extensions", () => ({
 vi.mock("electron", () => ({
   app: { getPath: mocks.getPath },
   ipcMain: { handle: mocks.handle, removeHandler: mocks.removeHandler },
-  shell: { openPath: mocks.openPath },
+  shell: { openPath: mocks.openPath, openExternal: mocks.openExternal },
 }));
 
 vi.mock("./check-provider", () => ({ checkProvider: mocks.checkProvider }));
+vi.mock("./open-in-editor", () => ({ openWorkspaceInEditor: mocks.openWorkspaceInEditor }));
 vi.mock("./extension-settings-store", () => ({
   readExtensionSettings: mocks.readExtensionSettings,
   writeExtensionSettings: mocks.writeExtensionSettings,
@@ -66,6 +69,7 @@ describe("AiCliMainExtension", () => {
       "ai-cli-extension:read-provider-file",
       "ai-cli-extension:write-provider-file",
       "ai-cli-extension:reveal-workspace",
+      "ai-cli-extension:open-in-editor",
       "ai-cli-extension:reset-provider",
       "ai-cli-extension:get-settings",
       "ai-cli-extension:set-settings",
@@ -78,6 +82,7 @@ describe("AiCliMainExtension", () => {
     await getHandler("ai-cli-extension:read-provider-file")({}, "cluster-1", "claude", "CLAUDE.md");
     await getHandler("ai-cli-extension:write-provider-file")({}, "cluster-1", "claude", "CLAUDE.md", "rules");
     await getHandler("ai-cli-extension:reveal-workspace")({}, "cluster-1", "claude");
+    await getHandler("ai-cli-extension:open-in-editor")({}, "cluster-1", "claude");
     await getHandler("ai-cli-extension:reset-provider")({}, "cluster-1", "claude");
     await getHandler("ai-cli-extension:get-settings")({});
     await getHandler("ai-cli-extension:set-settings")({}, { probeTimeoutMs: 30_000 });
@@ -89,6 +94,11 @@ describe("AiCliMainExtension", () => {
     expect(mocks.readProviderFile).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", "CLAUDE.md");
     expect(mocks.writeProviderFile).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", "CLAUDE.md", "rules");
     expect(mocks.revealProviderWorkspace).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", mocks.openPath);
+    expect(mocks.openWorkspaceInEditor).toHaveBeenCalledWith("/user-data", "cluster-1", "claude", {
+      editorCommand: "code",
+      editorUriScheme: "vscode",
+      openExternal: mocks.openExternal,
+    });
     expect(mocks.resetProvider).toHaveBeenCalledWith("/user-data", "cluster-1", "claude");
   });
 
