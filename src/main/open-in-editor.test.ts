@@ -19,15 +19,21 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-// A fake child process that emits either "spawn" (success) or "error" (e.g.
-// ENOENT) on the next tick, after openWorkspaceInEditor has attached its
-// listeners.
-function fakeSpawn(outcome: "spawn" | { error: Error }): { spawn: Spawn; child: EventEmitter & { unref: () => void } } {
+// A fake child process that, on the next tick (after openWorkspaceInEditor has
+// attached its listeners), emits one of:
+//   "spawn"        - launcher started (POSIX success signal)
+//   { exit }       - process exited with a code (Windows success/failure signal)
+//   { error }      - spawn-level failure, e.g. ENOENT when the binary is missing
+function fakeSpawn(outcome: "spawn" | { exit: number } | { error: Error }): {
+  spawn: Spawn;
+  child: EventEmitter & { unref: () => void };
+} {
   const child = Object.assign(new EventEmitter(), { unref: vi.fn() });
   const spawn = vi.fn(() => {
     process.nextTick(() => {
       if (outcome === "spawn") child.emit("spawn");
-      else child.emit("error", outcome.error);
+      else if ("error" in outcome) child.emit("error", outcome.error);
+      else child.emit("exit", outcome.exit);
     });
     return child;
   }) as unknown as Spawn;
@@ -74,17 +80,18 @@ describe("openWorkspaceInEditor", () => {
     expect(openExternal).not.toHaveBeenCalled();
   });
 
-  it("quotes the command and workdir behind a shell on Windows", async () => {
+  it("quotes the command and workdir behind a shell on Windows and succeeds on exit 0", async () => {
     const userData = createRoot();
     const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "claude");
-    const { spawn } = fakeSpawn("spawn");
+    const { spawn } = fakeSpawn({ exit: 0 });
+    const openExternal = vi.fn();
 
     await expect(
       openWorkspaceInEditor(userData, "cluster-1", "claude", {
         editorCommand: "code",
         editorUriScheme: "vscode",
         spawn,
-        openExternal: vi.fn(),
+        openExternal,
         platform: "win32",
       }),
     ).resolves.toEqual({ ok: true });
@@ -94,6 +101,27 @@ describe("openWorkspaceInEditor", () => {
       stdio: "ignore",
       shell: true,
     });
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the URI handler when the Windows shell exits non-zero (binary not on PATH)", async () => {
+    const userData = createRoot();
+    const { workdir } = prepareProviderWorkspace(userData, "cluster-1", "claude");
+    // 9009 is cmd.exe's exit code for "'code' is not recognized ...".
+    const { spawn } = fakeSpawn({ exit: 9009 });
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      openWorkspaceInEditor(userData, "cluster-1", "claude", {
+        editorCommand: "code",
+        editorUriScheme: "vscode",
+        spawn,
+        openExternal,
+        platform: "win32",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(openExternal).toHaveBeenCalledWith(pathToEditorUri("vscode", path.resolve(workdir)));
   });
 
   it("falls back to the URI handler when the editor binary is missing", async () => {
