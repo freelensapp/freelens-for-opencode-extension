@@ -5,6 +5,11 @@ vi.mock("./ai-cli-page", () => ({
   AiCliPage: () => null,
 }));
 
+vi.mock("./settings-page", () => ({
+  ProbeTimeoutSetting: () => null,
+  ProbeTimeoutHint: () => null,
+}));
+
 import AiCliRendererExtension from "./index";
 
 describe("AiCliRendererExtension sidebar registration", () => {
@@ -25,5 +30,17 @@ describe("AiCliRendererExtension sidebar registration", () => {
 
     expect(icon.type).toBe(Renderer.Component.Icon);
     expect(icon.props).toMatchObject({ className: "sidebar-icon", material: "terminal" });
+  });
+
+  it("registers the probe timeout preference", () => {
+    const extension = new AiCliRendererExtension({} as never);
+
+    expect(extension.appPreferences).toHaveLength(1);
+
+    const [preference] = extension.appPreferences;
+
+    expect(preference).toMatchObject({ id: "ai-cli-probe-timeout", title: "Freelens AI CLI" });
+    expect(preference.components.Input).toBeTypeOf("function");
+    expect(preference.components.Hint).toBeTypeOf("function");
   });
 });

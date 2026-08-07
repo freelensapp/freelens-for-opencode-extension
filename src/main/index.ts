@@ -1,6 +1,7 @@
 import { Main } from "@freelensapp/extensions";
 import { app, ipcMain, shell } from "electron";
 import { checkProvider } from "./check-provider";
+import { readExtensionSettings, writeExtensionSettings } from "./extension-settings-store";
 import {
   prepareProviderWorkspace,
   readProviderFile,
@@ -30,11 +31,15 @@ export default class AiCliMainExtension extends Main.LensExtension {
       "write-provider-file",
       "reveal-workspace",
       "reset-provider",
+      "get-settings",
+      "set-settings",
     ];
 
     for (const channel of channels) ipcMain.removeHandler(`${CHANNEL_PREFIX}${channel}`);
 
-    ipcMain.handle(`${CHANNEL_PREFIX}check-provider`, (_event, providerId: string) => checkProvider(providerId));
+    ipcMain.handle(`${CHANNEL_PREFIX}check-provider`, (_event, providerId: string) =>
+      checkProvider(providerId, undefined, readExtensionSettings(app.getPath("userData")).probeTimeoutMs),
+    );
     ipcMain.handle(`${CHANNEL_PREFIX}prepare-workspace`, (_event, clusterId: string, providerId: string) =>
       prepareProviderWorkspace(app.getPath("userData"), clusterId, providerId),
     );
@@ -59,5 +64,9 @@ export default class AiCliMainExtension extends Main.LensExtension {
         return { ok: false, error: err?.message ?? String(err) };
       }
     });
+    ipcMain.handle(`${CHANNEL_PREFIX}get-settings`, () => readExtensionSettings(app.getPath("userData")));
+    ipcMain.handle(`${CHANNEL_PREFIX}set-settings`, (_event, settings: unknown) =>
+      writeExtensionSettings(app.getPath("userData"), settings),
+    );
   }
 }

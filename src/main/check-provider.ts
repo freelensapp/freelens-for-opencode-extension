@@ -1,5 +1,6 @@
 import { spawn as realSpawn } from "node:child_process";
 import { getAiCliProvider, type ProviderCheckResult } from "../common/ai-cli-providers";
+import { DEFAULT_PROBE_TIMEOUT_MS } from "../common/extension-settings";
 import type { ChildProcess } from "node:child_process";
 
 type Spawn = typeof realSpawn;
@@ -10,7 +11,7 @@ const WINDOWS_COMMAND_NOT_FOUND_RE = /not recognized as (?:an? )?(?:internal or 
 export function checkProvider(
   providerId: string,
   spawn: Spawn = realSpawn,
-  timeoutMs = 5_000,
+  timeoutMs = DEFAULT_PROBE_TIMEOUT_MS,
   platform: NodeJS.Platform = process.platform,
 ): Promise<ProviderCheckResult> {
   let provider;
